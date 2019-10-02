@@ -10,10 +10,10 @@ Licence
 
 import os
 import serial
-import fcntl
 import logging
 import time
 import threading
+import math
 
 
 SOH = chr(0x01)  # start of header
@@ -54,6 +54,10 @@ CHANNEL_R = 1
 CHANNEL_G = 2
 CHANNEL_B = 3
 
+SAFERANGE_MPCC_CURRENT = (0, 5)
+SAFERANGE_MPCC_TEMP = (0, 50)
+SAFERANGE_HEATSINK_TEMP = (0, 75)
+SAFERANGE_VACUUM_PRESSURE = (0, 10)
 
 class JOLTError(Exception):
 
@@ -70,6 +74,8 @@ class JOLT():
     def __init__(self, simulated=False):
         self._serial = self._find_device(simulated=simulated)
         self._ser_access = threading.Lock()
+
+        self.counter = 0
         
     def get_id(self):
         """
@@ -110,12 +116,12 @@ class JOLT():
         """
         self._send_cmd(CMD_SET_GAIN, format(val, "b"))
     
-    def get_offset(self, val):
+    def get_offset(self):
         """
         :param val: (int)
         :returns: (None)
         """
-        return self._send_query(CMD_GET_OFFSET, format(val, "b"))
+        return self._send_query(CMD_GET_OFFSET)
     
     def set_offset(self, val):
         """
@@ -148,7 +154,9 @@ class JOLT():
         """
         :returns: (int)
         """
-        return int(self._send_query(CMD_GET_MPPC_CURRENT))
+        #return int(self._send_query(CMD_GET_MPPC_CURRENT))
+        self.counter += 0.1
+        return math.sin(self.counter) * 7
     
     def get_vacuum_pressure(self):
         """
@@ -276,6 +284,8 @@ class JOLT():
         :returns: (None) no response to query (unlike _send_query)
         :raises: (JOLTError) error containing status code and corresponding message
         """
+        # TODO: Remove this line
+        return
         # Package command
         msg = SOH + ID_CMD + str(cmd) + str(len(args)) + "".join([str(a) for a in args]) + EOT
         msg = msg.encode('ascii')
@@ -311,6 +321,9 @@ class JOLT():
         :returns: (str) firmware response
         :raises: (JOLTError) error containing status code and corresponding message
         """
+        # TODO: Remove this line
+        return 10
+
         # Package command
         msg = SOH + ID_CMD + str(cmd) + str(len(args)) + [str(a) for a in args] + EOT
         msg = msg.encode('ascii')

@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+	<object class="wxDialog" name="ControlWindow">
+		<style>wxDEFAULT_DIALOG_STYLE|wxMINIMIZE_BOX</style>
+		<size>523,598</size>
+		<title>DELMIC JOLT</title>
+		<centered>1</centered>
+		<object class="wxBoxSizer">
+			<orient>wxVERTICAL</orient>
+			<object class="sizeritem">
+				<option>0</option>
+				<flag>wxEXPAND</flag>
+				<border>5</border>
+				<object class="wxBoxSizer">
+					<orient>wxVERTICAL</orient>
+					<object class="sizeritem">
+						<option>1</option>
+						<flag>wxALIGN_RIGHT|wxTOP|wxBOTTOM|wxRIGHT</flag>
+						<border>20</border>
+						<object class="wxStaticBitmap" name="m_bitmap1">
+							<bg>#f0f0f0</bg>
+							<fg>#ababab</fg>
+							<bitmap>../src/img/DELMIC_logo_RGB.png</bitmap>
+						</object>
+					</object>
+				</object>
+			</object>
+			<object class="sizeritem">
+				<option>2</option>
+				<flag>wxALL|wxEXPAND</flag>
+				<border>5</border>
+				<object class="wxStaticBoxSizer">
+					<orient>wxVERTICAL</orient>
+					<label>Settings</label>
+					<object class="sizeritem">
+						<option>0</option>
+						<flag>wxEXPAND|wxALL</flag>
+						<border>5</border>
+						<object class="wxBoxSizer">
+							<orient>wxHORIZONTAL</orient>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxALL|wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxVERTICAL</orient>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxEXPAND</flag>
+										<border>5</border>
+										<object class="wxFlexGridSizer">
+											<rows>2</rows>
+											<cols>2</cols>
+											<vgap>0</vgap>
+											<hgap>15</hgap>
+											<growablecols></growablecols>
+											<growablerows></growablerows>
+											<object class="sizeritem">
+												<option>0</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText16">
+													<label>Power</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+												<border>5</border>
+												<object class="wxStaticBitmap" name="ctl_power">
+													<bitmap>../src/img/icons8-toggle-off-32.png</bitmap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText17">
+													<label>Bias Voltage</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>0</option>
+												<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticBitmap" name="ctl_hv">
+													<bitmap>../src/img/icons8-toggle-off-32.png</bitmap>
+												</object>
+											</object>
+										</object>
+									</object>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>3</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxVERTICAL</orient>
+									<object class="sizeritem">
+										<option>0</option>
+										<flag>wxEXPAND|wxALL</flag>
+										<border>5</border>
+										<object class="wxBoxSizer">
+											<orient>wxHORIZONTAL</orient>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText1">
+													<label>Operating Voltage</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>0</option>
+												<flag>wxALL</flag>
+												<border>5</border>
+												<object class="wxSpinCtrlDouble" name="spn_voltage">
+													<style>wxSP_ARROW_KEYS</style>
+													<size>75,-1</size>
+													<value>3.600000</value>
+													<min>0</min>
+													<max>50</max>
+													<inc>0.5</inc>
+													<digits>2</digits>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>0</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText2">
+													<label>V</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>0</option>
+										<flag>wxALL|wxALIGN_CENTER_HORIZONTAL</flag>
+										<border>5</border>
+										<object class="wxButton" name="btn_AutoBC">
+											<label>Auto BC</label>
+											<default>0</default>
+											<markup>0</markup>
+											<bitmap />
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxEXPAND</flag>
+										<border>5</border>
+										<object class="wxFlexGridSizer">
+											<rows>2</rows>
+											<cols>4</cols>
+											<vgap>0</vgap>
+											<hgap>0</hgap>
+											<growablecols></growablecols>
+											<growablerows></growablerows>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText3">
+													<label>Signal Gain</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>2</option>
+												<flag>wxALL|wxEXPAND</flag>
+												<border>5</border>
+												<object class="wxSlider" name="slider_gain">
+													<style>wxSL_BOTTOM|wxSL_HORIZONTAL</style>
+													<size>180,-1</size>
+													<value>50</value>
+													<min>0</min>
+													<max>100</max>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_RIGHT</flag>
+												<border>5</border>
+												<object class="wxSpinCtrlDouble" name="spin_gain">
+													<style>wxALIGN_LEFT|wxSP_ARROW_KEYS</style>
+													<size>75,-1</size>
+													<value>1.000000</value>
+													<min>0</min>
+													<max>100</max>
+													<inc>1</inc>
+													<digits>2</digits>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText19">
+													<label>%</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText31">
+													<label>Signal Offset</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>0</option>
+												<flag>wxALL|wxEXPAND</flag>
+												<border>5</border>
+												<object class="wxSlider" name="slider_offset">
+													<style>wxSL_BOTTOM|wxSL_HORIZONTAL</style>
+													<size>180,-1</size>
+													<value>50</value>
+													<min>0</min>
+													<max>100</max>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_BOTTOM</flag>
+												<border>5</border>
+												<object class="wxSpinCtrlDouble" name="spin_offset">
+													<style>wxSP_ARROW_KEYS</style>
+													<size>75,-1</size>
+													<value>50</value>
+													<min>0</min>
+													<max>100</max>
+													<inc>1</inc>
+													<digits>2</digits>
+												</object>
+											</object>
+											<object class="sizeritem">
+												<option>1</option>
+												<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+												<border>5</border>
+												<object class="wxStaticText" name="m_staticText20">
+													<label>%</label>
+													<wrap>-1</wrap>
+												</object>
+											</object>
+										</object>
+									</object>
+								</object>
+							</object>
+						</object>
+					</object>
+					<object class="sizeritem">
+						<option>1</option>
+						<flag>wxEXPAND|wxALL</flag>
+						<border>5</border>
+						<object class="wxBoxSizer">
+							<orient>wxVERTICAL</orient>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText7">
+									<label>Channel Select</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxEXPAND|wxALL</flag>
+								<border>5</border>
+								<object class="wxBoxSizer">
+									<orient>wxHORIZONTAL</orient>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxToggleButton" name="tog_R">
+											<label>R</label>
+											<checked>1</checked>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxToggleButton" name="tog_G">
+											<label>G</label>
+											<checked>0</checked>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxToggleButton" name="tog_B">
+											<label>B</label>
+											<checked>0</checked>
+										</object>
+									</object>
+									<object class="sizeritem">
+										<option>1</option>
+										<flag>wxALL</flag>
+										<border>5</border>
+										<object class="wxToggleButton" name="tog_Pan">
+											<label>Pan</label>
+											<checked>0</checked>
+										</object>
+									</object>
+								</object>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
+			<object class="sizeritem">
+				<option>2</option>
+				<flag>wxEXPAND|wxALL</flag>
+				<border>5</border>
+				<object class="wxStaticBoxSizer">
+					<orient>wxHORIZONTAL</orient>
+					<label>Properties</label>
+					<object class="spacer">
+						<option>1</option>
+						<flag>wxEXPAND</flag>
+						<border>5</border>
+						<size>0,0</size>
+					</object>
+					<object class="sizeritem">
+						<option>2</option>
+						<flag>wxEXPAND</flag>
+						<border>5</border>
+						<object class="wxFlexGridSizer">
+							<rows>4</rows>
+							<cols>3</cols>
+							<vgap>5</vgap>
+							<hgap>5</hgap>
+							<growablecols></growablecols>
+							<growablerows></growablerows>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText8">
+									<label>Output Current</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_current">
+									<style>wxTE_READONLY|wxTE_RICH</style>
+									<value></value>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText9">
+									<label>mA</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText10">
+									<label>MPPC Temperature</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_MPPCTemp">
+									<style>wxTE_READONLY|wxTE_RICH</style>
+									<value></value>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText11">
+									<label>°C</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText12">
+									<label>Heat sink Temperatrue</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_sinkTemp">
+									<style>wxTE_READONLY|wxTE_RICH</style>
+									<value></value>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText13">
+									<label>°C</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText14">
+									<label>Vacuum Pressure</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_vacuumPressure">
+									<style>wxTE_READONLY|wxTE_RICH</style>
+									<value></value>
+								</object>
+							</object>
+							<object class="spacer">
+								<option>1</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<size>0,0</size>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
+			<object class="sizeritem">
+				<option>0</option>
+				<flag>wxEXPAND | wxALL</flag>
+				<border>5</border>
+				<object class="wxCollapsiblePane" name="btn_viewLog">
+					<label>View log</label>
+					<collapsed>1</collapsed>
+					<object class="panewindow">
+						<object class="wxStaticBoxSizer">
+							<orient>wxVERTICAL</orient>
+							<label>Log</label>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxEXPAND</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_log">
+									<style>wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH</style>
+									<size>-1,200</size>
+									<value></value>
+								</object>
+							</object>
+						</object>
+					</object>
+				</object>
+			</object>
+		</object>
+	</object>
+</resource>

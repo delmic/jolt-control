@@ -322,7 +322,10 @@ class JoltApp(wx.App):
         self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
 
         if self._hv:
+            # write parameters to device
             self.dev.set_voltage(self._voltage)
+            self.dev.set_gain(self._gain)
+            self.dev.set_offset(self._offset)
         else:
             self.dev.set_voltage(0)
 

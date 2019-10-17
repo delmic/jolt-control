@@ -82,7 +82,7 @@
                                 <property name="aui_row"></property>
                                 <property name="best_size"></property>
                                 <property name="bg">wxSYS_COLOUR_MENU</property>
-                                <property name="bitmap">Load From File; ../src/img/DELMIC_logo_RGB.png</property>
+                                <property name="bitmap">Load From File; ../src/jolt/img/DELMIC_logo_RGB.png</property>
                                 <property name="caption"></property>
                                 <property name="caption_visible">1</property>
                                 <property name="center_pane">0</property>
@@ -249,7 +249,7 @@
                                                         <property name="aui_row"></property>
                                                         <property name="best_size"></property>
                                                         <property name="bg"></property>
-                                                        <property name="bitmap">Load From File; ../src/img/icons8-toggle-off-32.png</property>
+                                                        <property name="bitmap">Load From File; ../src/jolt/img/icons8-toggle-off-32.png</property>
                                                         <property name="caption"></property>
                                                         <property name="caption_visible">1</property>
                                                         <property name="center_pane">0</property>
@@ -368,7 +368,7 @@
                                                         <property name="aui_row"></property>
                                                         <property name="best_size"></property>
                                                         <property name="bg"></property>
-                                                        <property name="bitmap">Load From File; ../src/img/icons8-toggle-off-32.png</property>
+                                                        <property name="bitmap">Load From File; ../src/jolt/img/icons8-toggle-off-32.png</property>
                                                         <property name="caption"></property>
                                                         <property name="caption_visible">1</property>
                                                         <property name="center_pane">0</property>

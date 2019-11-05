@@ -5,31 +5,32 @@ Created on 30 September 2019
 Copyright © 2019 Anders Muskens, Delmic
 '''
 
+import os
+import time
 import wx
 from wx import xrc
-import xmlh
 import logging
-import driver
 import threading
-import time
 import configparser
 from appdirs import AppDirs
-import os
-import log
-from util import *
-from __init__ import __version__
+import jolt
+from jolt.util import log
+from jolt.gui import xmlh
+from jolt import driver
+from jolt.util import *
+from jolt.gui import call_in_wx_main
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 # Get app config directories
-dirs = AppDirs("Jolt", "Delmic", version=__version__)
+dirs = AppDirs("Jolt", "Delmic", version=jolt.__version__)
 if os.path.isdir(dirs.user_data_dir):
     CONFIG_FILE = os.path.join(dirs.user_data_dir,'jolt.ini')
 else:
     logging.error("User data directory for application does not exist. Searching config in local directory")
     CONFIG_FILE = 'jolt.ini'
-
+    # TODO: put right path
 if os.path.isdir(dirs.user_log_dir):
     LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
 else:
@@ -122,9 +123,9 @@ class JoltApp(wx.App):
         self._init_dialog()
 
         # load bitmaps
-        self.bmp_off = wx.Bitmap("img/icons8-toggle-off-32.png")
-        self.bmp_on = wx.Bitmap("img/icons8-toggle-on-32.png")
-        self.bmp_icon = wx.Bitmap("img/jolt-icon.png")
+        self.bmp_off = wx.Bitmap("gui/img/icons8-toggle-off-32.png")
+        self.bmp_on = wx.Bitmap("gui/img/icons8-toggle-on-32.png")
+        self.bmp_icon = wx.Bitmap("gui/img/jolt-icon.png")
 
         # set icon
         icon = wx.Icon()
@@ -145,7 +146,7 @@ class JoltApp(wx.App):
         """
 
         # XRC Loading
-        self.res = xrc.XmlResource('xrc/main.xrc')
+        self.res = xrc.XmlResource('gui/main.xrc')
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')

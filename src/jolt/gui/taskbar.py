@@ -7,14 +7,14 @@ Copyright © 2019 Anders Muskens, Delmic
 This module contains initialization of the TaskBar icon
 '''
 
-import wx
+import wx.adv
 
 
 class JoltTaskBarIcon(wx.adv.TaskBarIcon):
     def __init__(self, frame):
         self.frame = frame
         super(JoltTaskBarIcon, self).__init__()
-        self.bmp_icon = wx.Bitmap("img/jolt-icon.png")
+        self.bmp_icon = wx.Bitmap("../img/jolt-icon.png")
         self.icon = wx.Icon()
         self.icon.CopyFromBitmap(self.bmp_icon)
         self.SetIcon(self.icon)

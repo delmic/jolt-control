@@ -93,7 +93,7 @@ class JoltApp(wx.App):
             voltage = self.config.getfloat('DEFAULT', 'voltage')
             gain = self.config.getfloat('DEFAULT', 'gain')
             offset = self.config.getfloat('DEFAULT', 'offset')
-        except LookupError:
+        except (LookupError, KeyError, configparser.NoOptionError):
             logging.error("Invalid or missing configuration file.")
             voltage = 0.0
             gain = 0.0

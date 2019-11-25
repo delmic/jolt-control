@@ -24,9 +24,9 @@ import os
 import time
 import unittest
 from unittest.case import skip
-from src.driver import JOLT
+from jolt.driver.frontend import JOLT
 
-
+logging.getLogger().setLevel(logging.DEBUG)
 TEST_NOHW = 1#(os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 

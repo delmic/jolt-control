@@ -20,6 +20,7 @@ along with this program; if not, see http://www.gnu.org/licenses/.
 import os
 import time
 import wx
+import wx.adv
 from wx import xrc
 import logging
 import threading

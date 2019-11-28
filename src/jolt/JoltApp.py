@@ -32,6 +32,9 @@ from jolt.gui import xmlh
 from jolt import driver
 from jolt.util import *
 from jolt.gui import call_in_wx_main
+import sys
+import warnings
+import traceback
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
@@ -496,10 +499,76 @@ class JoltApp(wx.App):
             # ending the thread....
             logging.debug("Exiting polling thread...")
 
+    def excepthook(self, etype, value, trace):
+        """ Method to intercept unexpected errors that are not caught
+        anywhere else and redirects them to the logger.
+        Note that exceptions caught and logged will appear in the text pane,
+        but not cause it to pop-up (as this method will not be called).
+        """
+        # in case of error here, don't call again, it'd create infinite recursion
+        if sys and traceback:
+            sys.excepthook = sys.__excepthook__
+
+            try:
+                exc = traceback.format_exception(etype, value, trace)
+                try:
+                    remote_tb = value._pyroTraceback
+                    rmt_exc = "Remote exception %s" % ("".join(remote_tb),)
+                except AttributeError:
+                    rmt_exc = ""
+                logging.error("".join(exc) + rmt_exc)
+
+            finally:
+                # put us back
+                sys.excepthook = self.excepthook
+        # python is ending... can't rely on anything
+        else:
+            print("%s: %s\n%s" % (etype, value, trace))
+
+    def showwarning(self, message, category, filename, lineno, file=None, line=None):
+        """
+        Called when a warning is generated.
+        The default behaviour is to write it on stderr, which would lead to it
+        being shown as an error.
+        """
+        warn = warnings.formatwarning(message, category, filename, lineno, line)
+        logging.warning(warn)
+
+def installThreadExcepthook():
+    """ Workaround for sys.excepthook thread bug
+    http://spyced.blogspot.com/2007/06/workaround-for-sysexcepthook-bug.html
+
+    Call once from ``__main__`` before creating any threads.
+    """
+    init_old = threading.Thread.__init__
+
+    def init(self, *args, **kwargs):
+        init_old(self, *args, **kwargs)
+        run_old = self.run
+
+        def run_with_except_hook(*args, **kw):
+            try:
+                run_old(*args, **kw)
+            except (KeyboardInterrupt, SystemExit):
+                raise
+            except Exception:
+                sys.excepthook(*sys.exc_info())
+
+        self.run = run_with_except_hook
+    threading.Thread.__init__ = init
+
 
 def main():
     app = JoltApp()
+    # Change exception hook so unexpected exception get caught by the logger,
+    # and warnings are shown as warnings in the log.
+    backup_excepthook, sys.excepthook = sys.excepthook, app.excepthook
+    warnings.showwarning = app.showwarning
+
     app.MainLoop()
+    app.Destroy()
+    sys.excepthook = backup_excepthook
 
 if __name__ == "__main__":
+    installThreadExcepthook()
     main()

@@ -45,9 +45,9 @@ class TestSEM(unittest.TestCase):
         cls.jolt.terminate()
 
     def test_voltage(self):
-        self.jolt.set_voltage(20)
+        self.jolt.set_voltage(-20)
         vol = self.jolt.get_voltage()
-        self.assertEqual(20, vol)
+        self.assertEqual(-20, vol)
 
 
 if __name__ == "__main__":

@@ -465,9 +465,9 @@ class JoltApp(wx.App):
                 # get new values from the device
                 self.mpcc_current = self.dev.get_mppc_current()
                 self.mpcc_temp = self.dev.get_mppc_temp()
-                self.heat_sink_temp = self.dev.get_heat_sink_temp()
+                self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
-                self.err = self.dev.get_error_status()
+                #self.err = self.dev.get_error_status()
                 # refresh gui with these values
                 self.refresh()
 

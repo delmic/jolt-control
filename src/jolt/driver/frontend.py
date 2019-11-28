@@ -3,7 +3,7 @@
 '''
 Created on 1 Oct 2019
 
-Copyright © 2017-2018 Anders Muskens, Philip Winkler, Delmic
+Copyright © 2019 Anders Muskens, Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -23,53 +23,64 @@ import serial
 import logging
 import time
 import threading
-import math
+import random
 import glob
 
 
-SOH = b'\x01'  # chr(0x01)  # start of header
-EOT = b'\x04'  # end of transmission
-ACK = b'\x06'  # acknowledgement
-NAK = b'\x15'
-US = b'\x1F'  # unit separator
-ETX = b'\x03'  # end of text
-ID_CMD = b'\x43'  # packet identifier command
-ID_STATUS = b'\x53'  # packet identifier command
-ID_ASCII = b'\x4D'  # packet identifier ascii message
-ID_BIN = b'\x04'  # packet identifier binary message
-ERRORS = []  # error codes
+SOH = chr(0x01).encode('utf-8')  # chr(0x01).encode('utf-8')  # start of header
+EOT = chr(0x04).encode('utf-8')  # end of transmission
+ACK = chr(0x06).encode('utf-8')  # acknowledgement
+NAK = chr(0x15).encode('utf-8')
+US = chr(0x1F).encode('utf-8')  # unit separator
+ETX = chr(0x03).encode('utf-8')  # end of text
+ID_CMD = chr(0x43).encode('utf-8')  # packet identifier command
+ID_STATUS = chr(0x53).encode('utf-8')  # packet identifier command
+ID_ASCII = chr(0x4D).encode('utf-8')  # packet identifier ascii message
+ID_BIN = chr(0x04).encode('utf-8')  # packet identifier binary message
 
-CMD_SET_POWER = b'A'
-CMD_GET_VOLTAGE = b'B'
-CMD_SET_VOLTAGE = b'C'
-CMD_GET_OFFSET = b'D'
-CMD_SET_OFFSET = b'E'
-CMD_GET_GAIN = b'F'
-CMD_SET_GAIN = b'G'
-CMD_GET_MPPC_TEMP = b'H'
-CMD_SET_MPPC_TEMP = b'I'
-CMD_GET_SINK_TEMP = b'J'
-CMD_GET_MPPC_CURRENT = b'K'
-CMD_GET_VACUUM_PRESSURE = b'L'
-CMD_GET_CHANNEL = b'M'
-CMD_SET_CHANNEL = b'N'
-CMD_GET_ERROR = b'O'
-CMD_CALL_AUTO_BC = b'P'
-CMD_GET_CHANNEL_LIST = b'Q'
-CMD_GET_ID = chr(0x13)
-CMD_SERIAL_VERSION = chr(0x14)
-CMD_ARG_SIZE = chr(0x15)
-CMD_ENDIANNESS = chr(0x16)
+CMD_SET_POWER = chr(0x65).encode('utf-8')
+CMD_GET_VOLTAGE = chr(0x66).encode('utf-8')
+CMD_SET_VOLTAGE = chr(0x67).encode('utf-8')
+CMD_GET_OFFSET = chr(0x68).encode('utf-8')
+CMD_SET_OFFSET = chr(0x69).encode('utf-8')
+CMD_GET_GAIN = chr(0x70).encode('utf-8')
+CMD_SET_GAIN = chr(0x71).encode('utf-8')
+CMD_GET_MPPC_TEMP = chr(0x72).encode('utf-8')
+CMD_SET_MPPC_TEMP = chr(0x73).encode('utf-8')
+CMD_GET_COLD_PLATE_TEMP = chr(0x74).encode('utf-8')
+CMD_GET_HOT_PLATE_TEMP = chr(0x51).encode('utf-8')
+CMD_GET_MPPC_CURRENT = chr(0x75).encode('utf-8')
+CMD_GET_VACUUM_PRESSURE = chr(0x76).encode('utf-8')
+CMD_GET_CHANNEL = chr(0x77).encode('utf-8')
+CMD_SET_CHANNEL = chr(0x78).encode('utf-8')
+CMD_GET_ERROR = chr(0x79).encode('utf-8')
+CMD_CALL_AUTO_BC = chr(0x50).encode('utf-8')
+CMD_GET_CHANNEL_LIST = chr(0x51).encode('utf-8')
 
-CHANNEL_PAN = 0
+CMD_GET_FE_SN = chr(0x56).encode('utf-8')
+CMD_GET_FE_FW_VER = chr(0x13).encode('utf-8')
+CMD_GET_FE_HW_VER = chr(0x53).encode('utf-8')
+CMD_GET_BE_SN = chr(0x57).encode('utf-8')
+CMD_GET_BE_FW_VER = chr(0x54).encode('utf-8')
+CMD_GET_BE_HW_VER = chr(0x55).encode('utf-8')
+CMD_SERIAL_VERSION = chr(0x14).encode('utf-8')
+CMD_ARG_SIZE = chr(0x15).encode('utf-8')
+CMD_ENDIANNESS = chr(0x16).encode('utf-8')
+
+ERROR_CODE = chr(0x59).encode('utf-8')
+
+CHANNEL_PAN = 7
 CHANNEL_R = 1
 CHANNEL_G = 2
-CHANNEL_B = 3
+CHANNEL_B = 4
 
 SAFERANGE_MPCC_CURRENT = (0, 5)
 SAFERANGE_MPCC_TEMP = (0, 50)
 SAFERANGE_HEATSINK_TEMP = (0, 75)
 SAFERANGE_VACUUM_PRESSURE = (0, 10)
+
+ON = chr(0xff).encode('utf-8')
+OFF = chr(0x00).encode('utf-8')
 
 class JOLTError(Exception):
 
@@ -89,124 +100,175 @@ class JOLT():
 
         self.counter = 0
         
-    def get_id(self):
+    def get_fe_sn(self):
         """
-        :param val: (bool) True for on, False for off
+        :returns: (str) frontend serial number
         """
-        return self._send_query(CMD_GET_ID)
+        b = self._send_query(CMD_GET_FE_SN)  # 40 bytes
+        return b.decode('utf-8')
+
+    def get_fe_fw_version(self):
+        """
+        :returns: (str) frontend firmware version
+        """
+        b = self._send_query(CMD_GET_FE_FW_VER)  # 40 bytes
+        return b.decode('utf-8')
+
+    def get_fe_hw_version(self):
+        """
+        :returns: (str) frontend hardware version
+        """
+        b = self._send_query(CMD_GET_FE_HW_VER)  # 40 bytes
+        return b.decode('utf-8')
+
+    def get_be_sn(self):
+        """
+        :returns: (str) backend serial number
+        """
+        b = self._send_query(CMD_GET_BE_SN)  # 40 bytes
+        return b.decode('utf-8')
+
+    def get_be_fw_version(self):
+        """
+        :returns: (str) backend (computer board) firmware version
+        """
+        b = self._send_query(CMD_GET_BE_FW_VER)  # 40 bytes
+        return b.decode('utf-8')
+    
+    def get_be_hw_version(self):
+        """
+        :returns: (str) backend (computer board) hardware version
+        """
+        b = self._send_query(CMD_GET_BE_HW_VER)  # 40 bytes
+        return b.decode('utf-8')
     
     def set_power(self, val):
         """
         :param val: (bool) True for on, False for off
         :returns: (None)
         """
-        self._send_cmd(CMD_SET_POWER, format(val, "b"))
+        arg = ON if val else OFF
+        self._send_cmd(CMD_SET_POWER, arg)
     
     def get_voltage(self):
         """
-        :returns: (int)
+        :returns: (-80 <= float <= 0): vbias in V
         """
-        return int(self._send_query(CMD_GET_VOLTAGE))
+        b = self._send_query(CMD_GET_VOLTAGE)  # 4 bytes, -80e6 - 0
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def set_voltage(self, val):
         """
-        :param val: (int)
+        :param val: (-80 <= float <= 0): vbias in V
         :returns: (None)
         """
-        self._send_cmd(CMD_SET_VOLTAGE, b"%d" % val)  # format(val, "b"))
+        if not -80 <= val <= 0:
+            logging.error("Voltage %.6f out of range -80 <= vol <= 0." % val)
+        b = int(val * 1e6).to_bytes(4, 'big', signed=True)
+        self._send_cmd(CMD_SET_VOLTAGE, b)
     
     def get_gain(self):
         """
-        :returns: (int)
+        :returns: (0.5 <= float <= 64): PGA gain
         """
-        return int(self._send_query(CMD_GET_GAIN))
+        b = self._send_query(CMD_GET_GAIN)  # 4 bytes, 5e5 - 64e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def set_gain(self, val):
         """
-        :param val: (int)
+        :param val: (0.5 <= float <= 64): PGA gain to be set
         :returns: (None)
         """
-        self._send_cmd(CMD_SET_GAIN, format(val, "b"))
+        if not 0.5 <= val <= 64:
+            logging.error("Gain %.6f out of range 0.5 <= gain <= 64." % val)
+        b = int(val * 1e6).to_bytes(4, 'big', signed=True)
+        self._send_cmd(CMD_SET_GAIN, b)
     
     def get_offset(self):
         """
-        :param val: (int)
-        :returns: (None)
+        :returns: (-5 <= float <= 5) output offset in V
         """
-        return self._send_query(CMD_GET_OFFSET)
+        b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def set_offset(self, val):
         """
-        :param val: (int)
+        :param val: (-5 <= float <= 5) output offset
         :returns: (None)
         """
-        self._send_cmd(CMD_SET_OFFSET, format(val, "b"))
+        if not -5 <= val <= 5:
+            logging.error("Offset %.6f out of range -5 <= offset <= 5." % val)
+        b = int(val * 1e6).to_bytes(4, 'big', signed=True)
+        self._send_cmd(CMD_SET_OFFSET, b)
     
     def get_mppc_temp(self):
         """
-        :returns: (int)
+        :returns: (-20 <= float <= 70): temperature in C
         """
-        return int(self._send_query(CMD_GET_MPPC_TEMP))
+        b = self._send_query(CMD_GET_MPPC_TEMP)
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
   
     def set_target_mppc_temp(self, val):
         """
-        :param val: (int)
+        :param val: (-20 <= float <= 70): temperature in C
         :returns: (None)
         """
-        # sets the target temperature
-        self._send_cmd(CMD_SET_MPPC_TEMP, format(val, "b"))
+        if not -20 <= val <= 70:
+            logging.error("Temperature %.6f out of range -20 <= temp <= 70." % val)
+        b = int(val * 1e6).to_bytes(4, 'big', signed=True)
+        self._send_cmd(CMD_SET_MPPC_TEMP, b)
     
-    def get_heat_sink_temp(self):
+    def get_cold_plate_temp(self):
         """
-        :returns: (int)
+        :returns: (-20 <= float <= 70): temperature in C
         """
-        return int(self._send_query(CMD_GET_SINK_TEMP))
+        b = self._send_query(CMD_GET_COLD_PLATE_TEMP)  # 4 bytes, -20e6 - 70e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
+    
+    def get_hot_plate_temp(self):
+        """
+        :returns: (-20 <= float <= 70): temperature in C
+        """
+        b = self._send_query(CMD_GET_HOT_PLATE_TEMP)  # 4 bytes, -20e6 - 70e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def get_mppc_current(self):
+
         """
-        :returns: (int)
+        :returns: (0 <= float <= 5): VideoIn Reading in V
         """
-        #return int(self._send_query(CMD_GET_MPPC_CURRENT))
-        self.counter += 0.1
-        return math.sin(self.counter) * 7
+        b = self._send_query(CMD_GET_MPPC_CURRENT)  # 4 bytes, 0 - 5e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def get_vacuum_pressure(self):
         """
-        :returns: (int)
+        :returns: (10 <= float <= 1200) pressure in mBar
         """
-        return int(self._send_query(CMD_GET_VACUUM_PRESSURE))
+        # TODO: documentation error?
+        b = self._send_query(CMD_GET_VACUUM_PRESSURE)  # 4 bytes, 10e3 - 12e6
+        return int.from_bytes(b, 'big', signed=True) * 1e-3
     
     def get_channel(self):
         """
-        :returns: (int)
+        :returns: (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN): color channel
         """
-        return int(self._send_query(CMD_GET_CHANNEL))
+        b = self._send_query(CMD_GET_CHANNEL)  # 1 byte
+        return b.from_bytes(b, 'big', signed=True)
 
     def set_channel(self, val):
         """
-        :param val: (int)
+        :param val: (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN): color channel
         :returns: (None)
         """
-        self._send_cmd(CMD_SET_CHANNEL, format(val, "b"))
-    
-    def get_error_status(self):
-        """
-        :returns: (?)
-        """
-        return self._send_query(CMD_GET_ERROR)
+        if val not in (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN):
+            logging.error("Unknown channel %s, needs to be %s, %s, %s, or %s." % (val, CHANNEL_R, CHANNEL_G,
+                                                                                     CHANNEL_B, CHANNEL_PAN))
+        b = val.to_bytes(1, 'big', signed=True)
+        self._send_cmd(CMD_SET_CHANNEL, b)
     
     def call_auto_bc(self):
-        """
-        :returns: (int)
-        """
-        self._send_cmd(CMD_CALL_AUTO_BC)
-    
-    def get_channel_list(self):
-        """
-        :returns: ?
-        """
-        # TODO: what does this return
-        return self._send_query(CMD_GET_CHANNEL_LIST)
+        raise NotImplementedError()
+
 
     @staticmethod
     def _openSerialPort(port, baudrate):
@@ -258,16 +320,9 @@ class JOLT():
         for n in ports:
             try:
                 serial = self._openSerialPort(n, baudrate)
-                try:
-                    self.send_null_cmd()  # stop if it's not the right hardware before disturbing it
-                    idn = self.get_id()
-                    if not "jolt" in idn.lower():
-                        raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
-                except JOLTError:
-                    # Can happen if the device has received some weird characters
-                    # => try again (now that it's flushed)
-                    logging.info("Device answered by an error, will try again")
-                    idn = self.GetVersion()
+                idn = self.get_fe_hw_version()
+                if not "jolt" in idn.lower():
+                    raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
                 return n, idn
             except (IOError, JOLTError):
                 logging.info("Skipping device on port %s, which didn't seem to be compatible", n)
@@ -279,24 +334,20 @@ class JOLT():
                           (ports,))
         return serial
      
-    def _send_cmd(self, cmd, args):
+    def _send_cmd(self, cmd, arg=b''):
         """
-        Packages command, sends it to the firmware and parses response
-        :param cmd: (str) command code
-        :param arg: ? multiple args? binary format?
+        Frames command, sends it to the firmware and parses response
+        :param cmd: (bytes) command code
+        :param arg: (bytes) argument
         :returns: (None) no response to command (unlike _send_query)
         :raises: (JOLTError) error containing status code and corresponding message
         """
-
-        # Package command
-        print(cmd, args)
-        msg = SOH + ID_CMD + cmd + b"%d" % len(args) + args + EOT
-        print(msg)
-        #msg = msg.encode('ascii')
+        # Frame command
+        msg = SOH + ID_CMD + cmd + len(arg).to_bytes(1, 'big', signed=True) + arg + EOT
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending command %s", msg.decode('latin1'))
+            logging.debug("Sending command %s", msg)
             self._serial.write(msg)
         
         # Parse status
@@ -306,7 +357,7 @@ class JOLT():
         while char != EOT:
             char = self._serial.read()
             if not char:
-                raise IOError("Timeout after receiving %s" % stat.decode('ascii'))
+                raise IOError("Timeout after receiving %s" % stat)
             stat += char
         logging.debug("Received status message %s" % stat)
         
@@ -315,22 +366,20 @@ class JOLT():
         if stat[2:3] != ACK:
             raise JOLTError(stat[2])
 
-    def _send_query(self, cmd, args=b""):
+    def _send_query(self, cmd, arg=b""):
         """
-        Packages query, sends it to the firmware and parses response
-        :param cmd: (str) command code
-        :returns: (str) firmware response
+        Frames query, sends it to the firmware and parses response
+        :param cmd: (bytes) command code
+        :param arg: (bytes): argument
+        :returns: (bytes) firmware response
         :raises: (JOLTError) error containing status code and corresponding message
         """
-
-        # Package command
-        print(args, 'args')
-        msg = SOH + ID_CMD + cmd + b"%d" % len(args) + args + EOT
-        #msg = msg.encode('ascii')
+        # Frame command
+        msg = SOH + ID_CMD + cmd + len(arg).to_bytes(1, 'big', signed=True) + arg + EOT
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending command %s", msg.decode('latin1'))
+            logging.debug("Sending command %s", msg)
             self._serial.write(msg)
         
         # Parse status
@@ -340,7 +389,7 @@ class JOLT():
         while char != EOT:
             char = self._serial.read()
             if not char:
-                raise IOError("Timeout after receiving %s" % stat.decode('ascii'))
+                raise IOError("Timeout after receiving %s" % stat)
             stat += char
         logging.debug("Received status message %s" % stat)
         
@@ -352,28 +401,13 @@ class JOLT():
         # Parse response
         # Response looks like this:
         # SOH + packet type + message length + message type + US + message + ETX + EOT
-        resp = char = b""
-        while char != EOT:
-            char = self._serial.read()
-            if not char:
-                raise IOError("Timeout after receiving %s" % resp.decode('ascii'))
-            resp += char
-        logging.debug("Received response message %s" % resp)
-
-        soh = resp[0]  # SOH
-        enc = resp[1]  # M or B
-        mlen = resp[2]  # length
-        mtype = resp[3]  # type
-        sep = resp[4]  # US separator
-        m = resp[5:5+mlen]  # message
-        etx = resp[-2]  # end of text
-        eot = resp[-1]  # end of transmission
-
-        if (soh != SOH or (enc != ID_ASCII or enc != ID_BIN) or sep != US
-            or etx != ETX or eot != EOT):
-            raise IOError("Status message %s has unexpected format." % resp)     
-        
-        return m.decode('ascii') if enc == ID_ASCII else chr(int(m))
+        self._serial.read(2) 
+        l = int.from_bytes(self._serial.read(), 'big', signed=True)
+        self._serial.read(2)
+        m = self._serial.read(l)
+        self._serial.read(2)
+        # TODO: check format    
+        return m
         
     def terminate(self):
         pass
@@ -387,13 +421,14 @@ class JOLTSimulator():
 
         # TODO: use reasonable numbers
         self.power = False
-        self.voltage = 12  # V
-        self.offset = 5
-        self.gain = 10
-        self.mppc_temp = 30
-        self.sink_temp = 35
-        self.mppc_current = 50
-        self.vacuum_pressure = 23
+        self.voltage = int(12e6)  # µV
+        self.offset = int(5e6)  # µV
+        self.gain = int(10e6)  # µV
+        self.mppc_temp = int(30e6)  # µC
+        self.cold_plate_temp = -10e6  # µC
+        self.hot_plate_temp = int(35e6)  # µC
+        self.mppc_current = int(50e6)  # µV
+        self.vacuum_pressure = int(23e3)  # µBar
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
 
@@ -401,10 +436,9 @@ class JOLTSimulator():
         self._input_buf += data
         self._parseMessage(self._input_buf)  # will update _output_buf
 
-        self._input_buf = self._input_buf[-len(data):]
+        self._input_buf = b''
 
     def read(self, size=1):
-        print(self._output_buf)
         ret = self._output_buf[:size]
         self._output_buf = self._output_buf[len(ret):]
 
@@ -425,14 +459,14 @@ class JOLTSimulator():
         del self._input_buf
 
     def _sendStatus(self, status):
-        logging.debug("Sending status message %s" % status.decode('ascii'))
-        self._output_buf += SOH + ID_STATUS + status + US + status + EOT#.encode('ascii')
+        logging.debug("Sending status message %s" % status)
+        self._output_buf += SOH + ID_STATUS + status + US + status + EOT
 
     def _sendAnswer(self, ans, ptype=ID_ASCII):
         # TODO: message type (byte 4)
-        logging.debug("Sending response %s" % ans.decode('ascii'))
-        mtype = b'T'
-        self._output_buf += SOH + ptype + b"%d" % len(ans) + mtype + US + ans + ETX + EOT  #.encode('ascii')
+        logging.debug("Sending response %s" % ans)
+        mtype = 'T'.encode('utf-8')
+        self._output_buf += SOH + ptype + len(ans).to_bytes(1, 'big', signed=True) + mtype + US + ans + ETX + EOT
 
     def _parseMessage(self, msg):
         """
@@ -442,10 +476,9 @@ class JOLTSimulator():
 
         logging.debug("SIM: parsing %s", msg)
 
-        com = msg[2:3]  # indexing byte returns int
-        arglen = int(msg[3:4])
-        print(msg, arglen, 'msg', com)
-        args = [msg[4+i] for i in range(arglen)]
+        com = msg[2:3]
+        arglen = msg[3]
+        arg = msg[4:4+arglen]
         
         if msg[0] != SOH or msg[-1] != EOT:
             # TODO: error code
@@ -454,56 +487,63 @@ class JOLTSimulator():
         # decode the command
         if com == CMD_SET_POWER:
             self._sendStatus(ACK)
-            self.power = args[0]
+            self.power = arg
         elif com == CMD_GET_VOLTAGE:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.voltage)
+            self._sendAnswer(self.voltage.to_bytes(4, 'big', signed=True))
         elif com == CMD_SET_VOLTAGE:
             self._sendStatus(ACK)
-            self.voltage = int(args[0])
+            self.voltage = int.from_bytes(arg, 'big', signed=True)
         elif com == CMD_GET_OFFSET:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.offset)
+            self._sendAnswer(self.offset.to_bytes(4, 'big', signed=True))
         elif com == CMD_SET_OFFSET:
             self._sendStatus(ACK)
-            self.offset = int(args[0])
+            self.offset = int.from_bytes(arg, 'big', signed=True)
         elif com == CMD_GET_GAIN:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.gain)
+            self._sendAnswer(self.gain.to_bytes(4, 'big', signed=True))
         elif com == CMD_SET_GAIN:
             self._sendStatus(ACK)
-            self.gain = int(args[0])
+            self.gain = int.from_bytes(arg, 'big', signed=True)
         elif com == CMD_GET_MPPC_TEMP:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.mppc_temp)
+            self._sendAnswer(self.mppc_temp.to_bytes(4, 'big', signed=True))
         elif com == CMD_SET_MPPC_TEMP:
             self._sendStatus(ACK)
-            self.mppc_temp = int(args[0])
-        elif com == CMD_GET_SINK_TEMP:
+            self.mppc_temp = int.from_bytes(arg, 'big', signed=True)
+        elif com == CMD_GET_HOT_PLATE_TEMP:
+            self.hot_plate_temp += random.randint(-2e6, 2e6)
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.sink_temp)
+            self._sendAnswer(self.hot_plate_temp.to_bytes(4, 'big', signed=True))
+        elif com == CMD_GET_COLD_PLATE_TEMP:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.cold_plate_temp.to_bytes(4, 'big', signed=True))
         elif com == CMD_GET_MPPC_CURRENT:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.mppc_current)
+            self._sendAnswer(self.mppc_current.to_bytes(4, 'big', signed=True))
         elif com == CMD_GET_VACUUM_PRESSURE:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.vacuum_pressure)
+            self.vacuum_pressure += random.randint(-5e3, 5e3)
+            self.vacuum_pressure = max(self.vacuum_pressure, 0)
+            self._sendAnswer(self.vacuum_pressure.to_bytes(4, 'big', signed=True))
         elif com == CMD_GET_CHANNEL:
             self._sendStatus(ACK)
-            self._sendAnswer(b"%d" % self.channel)
+            self._sendAnswer(self.channel.to_bytes(1, 'big', signed=True))
         elif com == CMD_SET_CHANNEL:
             self._sendStatus(ACK)
-            self.channel = int(args[0])
+            self.channel = int.from_bytes(arg, 'big', signed=True)
         elif com == CMD_GET_ERROR:
             self._sendStatus(ACK)
             # TODO: send what?
-            self._sendAnswer(b"errorerrorerror")
+            self._sendAnswer(ERROR_CODE)
         elif com == CMD_CALL_AUTO_BC:
             self._sendStatus(ACK)
             # do nothing
         elif com == CMD_GET_CHANNEL_LIST:
-            self._sendStatus(ACK)
-            self._sendAnswer(self.channels.encode('ascii'))
+            logging.error("not implemented")
+            #self._sendStatus(ACK)
+            #self._sendAnswer(self.channels.encode('ascii'))
         else:
             # TODO: error code
             self._sendStatus(NAK)

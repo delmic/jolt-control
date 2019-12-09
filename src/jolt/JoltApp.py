@@ -41,6 +41,7 @@ from shutil import copyfile
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 # Get app config directories
+SAVE_CONFIG = True  # whether or not to save the last values to .ini
 dirs = AppDirs("Jolt", "Delmic")
 if os.path.isdir(dirs.user_data_dir):
     CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
@@ -53,6 +54,7 @@ else:
     except:
         logging.error("Failed to create user data directory, using default .ini file.")
         CONFIG_FILE = 'jolt.ini'
+        SAVE_CONFIG = False
 
 if os.path.isdir(dirs.user_log_dir):
     LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
@@ -144,6 +146,9 @@ class JoltApp(wx.App):
         This is usually called when the window is closed.
         :return:
         """
+        if not SAVE_CONFIG:
+            logging.warning("Not saving jolt state.")
+            return
         cfgfile = open(CONFIG_FILE, 'w')
         self.config.set('DEFAULT', 'voltage', str(self._voltage))
         self.config.set('DEFAULT', 'gain', str(self._gain))

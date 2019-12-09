@@ -35,23 +35,35 @@ from jolt.gui import call_in_wx_main
 import sys
 import warnings
 import traceback
+from shutil import copyfile
 
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 # Get app config directories
-dirs = AppDirs("Jolt", "Delmic", version=jolt.__version__)
+dirs = AppDirs("Jolt", "Delmic")
 if os.path.isdir(dirs.user_data_dir):
-    CONFIG_FILE = os.path.join(dirs.user_data_dir,'jolt.ini')
+    CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
 else:
-    logging.error("User data directory for application does not exist. Searching config in local directory")
-    CONFIG_FILE = 'jolt.ini'
-    # TODO: put right path
+    # Create directory if it doesn't exist
+    try:
+        os.makedirs(dirs.user_data_dir)
+        copyfile('jolt.ini', os.path.join(dirs.user_data_dir, 'jolt.ini'))
+        CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
+    except:
+        logging.error("Failed to create user data directory, using default .ini file.")
+        CONFIG_FILE = 'jolt.ini'
+
 if os.path.isdir(dirs.user_log_dir):
     LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
 else:
-    logging.error("User data directory for application does not exist. Putting log in local directory")
-    LOG_FILE = 'jolt.log'
+    # Create directory if it doesn't exist
+    try:
+        os.makedirs(dirs.user_log_dir)
+        LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
+    except:
+        logging.error("Failed to create user log directory, using default .ini file.")
+        LOG_FILE = 'jolt.log'
 
 POLL_INTERVAL = 1.0 # seconds
 

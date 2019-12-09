@@ -495,7 +495,25 @@ class JOLTSimulator():
             pass
 
         # decode the command
-        if com == CMD_SET_POWER:
+        if com == CMD_GET_BE_FW_VER:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_FIRMWARE' + 22 * b'x')
+        elif com == CMD_GET_BE_HW_VER:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_HARDWARE' + 22 * b'x')
+        elif com == CMD_GET_FE_FW_VER:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_FIRMWARE' + 22 * b'x')
+        elif com == CMD_GET_FE_HW_VER:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_HARDWARE' + 22 * b'x')
+        elif com == CMD_GET_BE_SN:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_00000000' + 22 * b'x')
+        elif com == CMD_GET_FE_SN:
+            self._sendStatus(ACK)
+            self._sendAnswer(b'SIMULATED_00000000' + 22 * b'x')
+        elif com == CMD_SET_POWER:
             self._sendStatus(ACK)
             self.power = arg
         elif com == CMD_GET_VOLTAGE:
@@ -556,4 +574,5 @@ class JOLTSimulator():
             #self._sendAnswer(self.channels.encode('ascii'))
         else:
             # TODO: error code
+            logging.error("Unknown command %s" % com)
             self._sendStatus(NAK)

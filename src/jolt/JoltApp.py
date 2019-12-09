@@ -100,6 +100,14 @@ class JoltApp(wx.App):
         self.polling_thread = threading.Thread(target=self._do_poll)
         self.polling_thread.start()
 
+        # Get information from hardware for the log
+        logging.info("Backend firmware: %s" % self.dev.get_be_fw_version())
+        logging.info("Backend hardware: %s" % self.dev.get_be_hw_version())
+        logging.info("Backend serial number: %s" % self.dev.get_be_sn())
+        logging.info("Frontend firmware: %s" % self.dev.get_fe_fw_version())
+        logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
+        logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
+
     def load_config(self):
         # Load config from file
         self.config = configparser.ConfigParser()
@@ -111,7 +119,7 @@ class JoltApp(wx.App):
             gain = self.config.getfloat('DEFAULT', 'gain')
             offset = self.config.getfloat('DEFAULT', 'offset')
         except (LookupError, KeyError, configparser.NoOptionError):
-            logging.error("Invalid or missing configuration file.")
+            logging.error("Invalid or missing configuration file, falling back to default values.")
             voltage = 0.0
             gain = 0.0
             offset = 0.0

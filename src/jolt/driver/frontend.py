@@ -162,8 +162,11 @@ class JOLT():
         :param val: (-80 <= float <= 0): vbias in V
         :returns: (None)
         """
-        if not -80 <= val <= 0:
-            logging.error("Voltage %.6f out of range -80 <= vol <= 0." % val)
+        if not 0 <= val <= 80:
+            logging.error("Voltage %.6f out of range 0 <= vol <= 80." % val)
+        # Voltage is in fact negative, but this might be confusing in the GUI?
+        # Value needs to be between -80 and 0.
+        val = -val
         b = int(val * 1e6).to_bytes(4, 'big', signed=True)
         self._send_cmd(CMD_SET_VOLTAGE, b)
     
@@ -172,6 +175,7 @@ class JOLT():
         :returns: (0.5 <= float <= 64): PGA gain
         """
         b = self._send_query(CMD_GET_GAIN)  # 4 bytes, 5e5 - 64e6
+        b = (b - 0.5) / 63.5 * 100
         return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def set_gain(self, val):
@@ -179,6 +183,8 @@ class JOLT():
         :param val: (0.5 <= float <= 64): PGA gain to be set
         :returns: (None)
         """
+        # Gain must be between 0.5 and 64 V, scale from [0, 100]
+        val = (val / 100 * 63.5) + 0.5
         if not 0.5 <= val <= 64:
             logging.error("Gain %.6f out of range 0.5 <= gain <= 64." % val)
         b = int(val * 1e6).to_bytes(4, 'big', signed=True)
@@ -186,9 +192,11 @@ class JOLT():
     
     def get_offset(self):
         """
-        :returns: (-5 <= float <= 5) output offset in V
-        """
+        :returns: (0 <= float <= 100) output offset
+        """        
         b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
+        # Offset is between -5 and 5 V, scale to [0, 100]
+        b = (b * 10) + 50
         return int.from_bytes(b, 'big', signed=True) * 1e-6
     
     def set_offset(self, val):
@@ -196,6 +204,8 @@ class JOLT():
         :param val: (-5 <= float <= 5) output offset
         :returns: (None)
         """
+        # Offset is between -5 and 5 V, scale from [0, 100]
+        val = (val - 50) / 10
         if not -5 <= val <= 5:
             logging.error("Offset %.6f out of range -5 <= offset <= 5." % val)
         b = int(val * 1e6).to_bytes(4, 'big', signed=True)
@@ -359,7 +369,7 @@ class JOLT():
             if not char:
                 raise IOError("Timeout after receiving %s" % stat)
             stat += char
-        logging.debug("Received status message %s" % stat)
+        #logging.debug("Received status message %s" % stat)
         
         if stat[0:1] != SOH or stat[1:2] != ID_STATUS or stat[3:4] != US or stat[5:6] != EOT or stat[2:3] != stat[4:5]:
             raise IOError("Status message %s has unexpected format." % stat)
@@ -391,7 +401,7 @@ class JOLT():
             if not char:
                 raise IOError("Timeout after receiving %s" % stat)
             stat += char
-        logging.debug("Received status message %s" % stat)
+        #logging.debug("Received status message %s" % stat)
         
         if stat[0:1] != SOH or stat[1:2] != ID_STATUS or stat[3:4] != US or stat[5:6] != EOT or stat[2:3] != stat[4:5]:
             raise IOError("Status message %s has unexpected format." % stat)
@@ -459,12 +469,12 @@ class JOLTSimulator():
         del self._input_buf
 
     def _sendStatus(self, status):
-        logging.debug("Sending status message %s" % status)
+        #logging.debug("Sending status message %s" % status)
         self._output_buf += SOH + ID_STATUS + status + US + status + EOT
 
     def _sendAnswer(self, ans, ptype=ID_ASCII):
         # TODO: message type (byte 4)
-        logging.debug("Sending response %s" % ans)
+        #logging.debug("Sending response %s" % ans)
         mtype = 'T'.encode('utf-8')
         self._output_buf += SOH + ptype + len(ans).to_bytes(1, 'big', signed=True) + mtype + US + ans + ETX + EOT
 
@@ -474,7 +484,7 @@ class JOLTSimulator():
         return None: self._output_buf is updated if necessary
         """
 
-        logging.debug("SIM: parsing %s", msg)
+        #logging.debug("SIM: parsing %s", msg)
 
         com = msg[2:3]
         arglen = msg[3]

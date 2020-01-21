@@ -238,14 +238,8 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnOffsetSpin, id=xrc.XRCID('spin_offset'))
 
         # Channel select
-        self.tog_R = xrc.XRCCTRL(self.dialog, 'tog_R')
-        self.tog_G = xrc.XRCCTRL(self.dialog, 'tog_G')
-        self.tog_B = xrc.XRCCTRL(self.dialog, 'tog_B')
-        self.tog_Pan = xrc.XRCCTRL(self.dialog, 'tog_Pan')
-        self.dialog.Bind(wx.EVT_TOGGLEBUTTON, self.OnChanR, id=xrc.XRCID('tog_R'))
-        self.dialog.Bind(wx.EVT_TOGGLEBUTTON, self.OnChanG, id=xrc.XRCID('tog_G'))
-        self.dialog.Bind(wx.EVT_TOGGLEBUTTON, self.OnChanB, id=xrc.XRCID('tog_B'))
-        self.dialog.Bind(wx.EVT_TOGGLEBUTTON, self.OnChanPan, id=xrc.XRCID('tog_Pan'))
+        self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
+        self.dialog.Bind(wx.EVT_RADIOBOX, self.OnRadioBox, id=xrc.XRCID('radio_channel'))
 
         # Live displays
         self.txtbox_current = xrc.XRCCTRL(self.dialog, 'txtbox_current')
@@ -315,10 +309,7 @@ class JoltApp(wx.App):
         """
         self.btn_auto_bc.Enable(val)
         self.enable_gain_offset_controls(val)
-        self.tog_R.Enable(val)
-        self.tog_G.Enable(val)
-        self.tog_B.Enable(val)
-        self.tog_Pan.Enable(val)
+        self.channel_ctrl.Enable(val)
 
     def OnClose(self, event):
         """
@@ -392,35 +383,9 @@ class JoltApp(wx.App):
         if self._hv:
             self.dev.set_voltage(self._voltage)
 
-    def SetToggleRGBP(self, channel):
-        """
-        Sets to false all toggle buttons except the selected one (passed in channel)
-        :param channel: (wx.ToggleButton) Reference to toggle button that should be
-        """
-        toggles = [self.tog_R, self.tog_G, self.tog_B, self.tog_Pan]
-        toggles.remove(channel)
-        for tog in toggles:
-            tog.SetValue(False)
-
-    def OnChanR(self, event):
-        logging.info("Set channel R")
-        self.dev.set_channel(driver.CHANNEL_R)
-        self.SetToggleRGBP(self.tog_R)
-
-    def OnChanG(self, event):
-        logging.info("Set channel G")
-        self.dev.set_channel(driver.CHANNEL_G)
-        self.SetToggleRGBP(self.tog_G)
-
-    def OnChanB(self, event):
-        logging.info("Set channel B")
-        self.dev.set_channel(driver.CHANNEL_B)
-        self.SetToggleRGBP(self.tog_B)
-
-    def OnChanPan(self, event):
-        logging.info("Set channel Pan")
-        self.dev.set_channel(driver.CHANNEL_PAN)
-        self.SetToggleRGBP(self.tog_Pan)
+    def OnRadioBox(self, event):
+        channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_B, "B": driver.CHANNEL_G, "Pan": driver.CHANNEL_PAN}
+        self.dev.set_channel(channels[event.GetEventObject().GetStringSelection()])
 
     def OnGainSlider(self, event):
         self._gain = event.GetPosition()

@@ -82,7 +82,7 @@ class JoltApp(wx.App):
 
     """
 
-    def __init__(self, simulated=True):
+    def __init__(self, simulated=False):
         """
         Constructor
         :param simulated: True if the Jolt driver should be a simulator
@@ -110,10 +110,6 @@ class JoltApp(wx.App):
         self._hv = False
         self._call_auto_bc = threading.Event()
 
-        # start the thread for polling
-        self.polling_thread = threading.Thread(target=self._do_poll)
-        self.polling_thread.start()
-
         # Get information from hardware for the log
         logging.info("Backend firmware: %s" % self.dev.get_be_fw_version())
         logging.info("Backend hardware: %s" % self.dev.get_be_hw_version())
@@ -121,6 +117,11 @@ class JoltApp(wx.App):
         logging.info("Frontend firmware: %s" % self.dev.get_fe_fw_version())
         logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
         logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
+
+        # start the thread for polling
+        self.polling_thread = threading.Thread(target=self._do_poll)
+        self.polling_thread.start()
+
 
     def load_config(self):
         # Load config from file
@@ -216,6 +217,7 @@ class JoltApp(wx.App):
         # controls and events:
         # Initialize all of the GUI controls and connect them to events
         self.ctl_power =  xrc.XRCCTRL(self.dialog, 'ctl_power')
+        self.ctl_power.Enable(False)
         self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.OnPower)
         self.ctl_hv = xrc.XRCCTRL(self.dialog, 'ctl_hv')
         self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.OnHV)
@@ -243,6 +245,7 @@ class JoltApp(wx.App):
 
         # Live displays
         self.txtbox_current = xrc.XRCCTRL(self.dialog, 'txtbox_current')
+        self.txtbox_current.Enable(False)
         self.txtbox_MPPCTemp = xrc.XRCCTRL(self.dialog, 'txtbox_MPPCTemp')
         self.txtbox_sinkTemp = xrc.XRCCTRL(self.dialog, 'txtbox_sinkTemp')
         self.txtbox_vacuumPressure = xrc.XRCCTRL(self.dialog, 'txtbox_vacuumPressure')
@@ -255,7 +258,7 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # disable the controls until powered on
-        self.enable_power_controls(False)
+        self.enable_power_controls(True)
 
     @call_in_wx_main
     def _set_gui_from_val(self):
@@ -308,6 +311,7 @@ class JoltApp(wx.App):
         :param val: (bool) default is true, but if set to false, the controls will be disabled.
         """
         self.btn_auto_bc.Enable(val)
+        self.btn_auto_bc.Enable(False)  # not implemented yet
         self.enable_gain_offset_controls(val)
         self.channel_ctrl.Enable(val)
 
@@ -316,17 +320,17 @@ class JoltApp(wx.App):
         Event on window close
         """
         # Check if the user should power down
-        if self._power:
-            dlg = wx.MessageDialog(None, "Power down the Jolt hardware before closing the application?", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
-            dlg.SetOKCancelLabels("Power down", "Cancel closing")
-            result = dlg.ShowModal()
-
-            if result == wx.ID_OK:
-                logging.info("Powering down Jolt...")
-                self.dev.set_power(False)
-            else:
-                # Cancel closing
-                return
+#         if self._power:
+#             dlg = wx.MessageDialog(None, "Power down the Jolt hardware before closing the application?", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+#             dlg.SetOKCancelLabels("Power down", "Cancel closing")
+#             result = dlg.ShowModal()
+# 
+#             if result == wx.ID_OK:
+#                 logging.info("Powering down Jolt...")
+#                 self.dev.set_power(False)
+#             else:
+#                 # Cancel closing
+#                 return
 
         # end the polling thread
         self.should_close.set()
@@ -339,18 +343,26 @@ class JoltApp(wx.App):
 
     def OnPower(self, event):
         # Toggle the power value
+        #logging.warning("Power toggling not implemented yet.")
         self._power = not self._power
-        logging.info("Power: %s", self._power)
-        self.dev.set_power(self._power)
-        self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
-
-        # disable HV if power is off
-        if not self._power:
-            self._hv = False
-            self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
-            self.enable_power_controls(False)
+        
+        if self._power:
+            self.dev.set_target_mppc_temp(-10)
         else:
-            self.enable_power_controls()
+            self.dev.set_target_mppc_temp(24)
+            
+        
+#         logging.info("Power: %s", self._power)
+#         #self.dev.set_power(self._power)
+#         self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
+# 
+#         # disable HV if power is off
+#         if not self._power:
+#             self._hv = False
+#             self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
+#             self.enable_power_controls(False)
+#         else:
+#             self.enable_power_controls()
 
     def OnHV(self, event):
         # Toggle the HV value
@@ -372,44 +384,49 @@ class JoltApp(wx.App):
 
     def OnAutoBC(self, event):
         # Call Auto BC
-        logging.info("Calling auto BC")
-        self.dev.call_auto_bc()
-        self._call_auto_bc.set()
-        self.enable_gain_offset_controls(False)
+        raise NotImplementedError()
+#         logging.info("Calling auto BC")
+#         self.dev.call_auto_bc()
+#         self._call_auto_bc.set()
+#         self.enable_gain_offset_controls(False)
 
     def OnVoltage(self, event):
         self._voltage = event.GetValue()
-        logging.info("Voltage setting: %f V", self._voltage)
         if self._hv:
             self.dev.set_voltage(self._voltage)
+            logging.info("Voltage setting: %f V", self.dev.get_voltage())
 
     def OnRadioBox(self, event):
-        channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_B, "B": driver.CHANNEL_G, "Pan": driver.CHANNEL_PAN}
+        channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B, "Pan": driver.CHANNEL_PAN}
+        logging.error(channels[event.GetEventObject().GetStringSelection()])
         self.dev.set_channel(channels[event.GetEventObject().GetStringSelection()])
+        ret = self.dev.get_channel()
+        logging.info("Channel: %s", ret)
 
     def OnGainSlider(self, event):
         self._gain = event.GetPosition()
-        logging.info("Gain: %f %%", self._gain)
         self.spinctrl_gain.SetValue(self._gain)
         self.dev.set_gain(self._gain)
+        logging.info("Gain: %f %%", self.dev.get_gain())
 
     def OnOffsetSlider(self, event):
         self._offset = event.GetPosition()
-        logging.info("Offset: %f %%", self._offset)
         self.spinctrl_offset.SetValue(self._offset)
         self.dev.set_offset(self._offset)
+        logging.info("Offset: %f %%", self.dev.get_offset())
 
     def OnGainSpin(self, event):
         self._gain = event.GetValue()
-        logging.info("Gain: %f %%", self._gain)
         self.slider_gain.SetValue(int(self._gain))
         self.dev.set_gain(self._gain)
+        time.sleep(0.2)
+        logging.info("Gain: %f %%", self.dev.get_gain())
 
     def OnOffsetSpin(self, event):
         self._offset = event.GetValue()
-        logging.info("Offset: %f %%", self._offset)
         self.slider_offset.SetValue(int(self._offset))
         self.dev.set_offset(self._offset)
+        logging.info("Offset: %f %%", self.dev.get_offset())
 
     def OnRefreshGUI(self, event):
         self.refresh()
@@ -419,8 +436,9 @@ class JoltApp(wx.App):
         """
         Refreshes the GUI display values
         """
-        self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
-        self.check_saferange(self.txtbox_current, self.mpcc_current, driver.SAFERANGE_MPCC_CURRENT, "MPCC Current")
+        self.txtbox_current.SetValue("N/A")
+        #self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
+        #self.check_saferange(self.txtbox_current, self.mpcc_current, driver.SAFERANGE_MPCC_CURRENT, "MPCC Current")
 
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mpcc_temp)
         self.check_saferange(self.txtbox_MPPCTemp, self.mpcc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
@@ -430,7 +448,9 @@ class JoltApp(wx.App):
 
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
-
+        if not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]:
+            self.ctl_power.Enable(False)
+        
         # check the error status
         if self.err != 0:
             # Report error
@@ -457,12 +477,16 @@ class JoltApp(wx.App):
             while not self.should_close.is_set():
                 # get new values from the device
                 self.mpcc_current = self.dev.get_mppc_current()
-                self.mpcc_temp = self.dev.get_mppc_temp()
+                self.mpcc_temp = self.dev.get_cold_plate_temp()
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 #self.err = self.dev.get_error_status()
                 # refresh gui with these values
                 self.refresh()
+
+                logging.info("Gain: %s, offset: %s, channel: %s, voltage: %s",
+                             self.dev.get_gain(), self.dev.get_offset(), self.dev.get_channel(),
+                             self.dev.get_voltage())
 
                 # refresh gain & offset if auto BC was called
                 if self._call_auto_bc.is_set():
@@ -480,7 +504,8 @@ class JoltApp(wx.App):
                     wx.CallAfter(self.enable_gain_offset_controls)
 
                 # Wait till the next polling period
-                self.should_close.wait(POLL_INTERVAL)
+                time.sleep(POLL_INTERVAL)
+                #self.should_close.wait(POLL_INTERVAL)
 
         except Exception as e:
             logging.exception(e)

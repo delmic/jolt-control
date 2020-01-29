@@ -352,9 +352,9 @@ class JoltApp(wx.App):
             self.dev.set_target_mppc_temp(24)
             
         
-#         logging.info("Power: %s", self._power)
-#         #self.dev.set_power(self._power)
-#         self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
+        logging.info("Power: %s", self._power)
+        #self.dev.set_power(self._power)
+        self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
 # 
 #         # disable HV if power is off
 #         if not self._power:

@@ -37,6 +37,7 @@ import warnings
 import traceback
 from shutil import copyfile
 
+TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
@@ -82,7 +83,7 @@ class JoltApp(wx.App):
 
     """
 
-    def __init__(self, simulated=True):
+    def __init__(self, simulated=TEST_NOHW):
         """
         Constructor
         :param simulated: True if the Jolt driver should be a simulator

@@ -88,7 +88,15 @@ class JoltApp(wx.App):
         Constructor
         :param simulated: True if the Jolt driver should be a simulator
         """
-        self.dev = driver.JOLT(simulated)
+        try:
+            self.dev = driver.JOLT(simulated)
+            self._startup_error = False
+        except IOError:
+            self._startup_error = True
+            super().__init__(self)
+            wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
+                          'Info', wx.OK)
+
         self.should_close = threading.Event()
 
         # Load config
@@ -164,6 +172,9 @@ class JoltApp(wx.App):
         """
         Function called when the wxWindow is initialized.
         """
+        if self._startup_error:
+            return True
+
         # open the main control window dialog
         self._init_dialog()
 
@@ -467,23 +478,23 @@ class JoltApp(wx.App):
         elif not self._debug_mode and not self._power:
             self.enable_power_controls(False)
 
-        # check the error status
-        if self.err != 0:
-            # Report error
-            logging.error("Error code: %d", self.err)
-
-            if not self.err in self.error_codes:
-                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.err,),
-                                                 parent=self.dialog,flags=wx.ICON_ERROR)
-
-                msg.Show()
-
-            # this way, the warning message is only displayed when the warning first occurs
-            self.error_codes.add(self.err)
-
-        else:
-            # errors cleared
-            self.error_codes.clear()
+#         # check the error status
+#         if self.err != 0:
+#             # Report error
+#             logging.error("Error code: %d", self.err)
+# 
+#             if not self.err in self.error_codes:
+#                 msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.err,),
+#                                                  parent=self.dialog,flags=wx.ICON_ERROR)
+# 
+#                 msg.Show()
+# 
+#             # this way, the warning message is only displayed when the warning first occurs
+#             self.error_codes.add(self.err)
+# 
+#         else:
+#             # errors cleared
+#             self.error_codes.clear()
 
     def _do_poll(self):
         """

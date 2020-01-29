@@ -82,7 +82,7 @@ class JoltApp(wx.App):
 
     """
 
-    def __init__(self, simulated=False):
+    def __init__(self, simulated=True):
         """
         Constructor
         :param simulated: True if the Jolt driver should be a simulator
@@ -217,7 +217,6 @@ class JoltApp(wx.App):
         # controls and events:
         # Initialize all of the GUI controls and connect them to events
         self.ctl_power =  xrc.XRCCTRL(self.dialog, 'ctl_power')
-        self.ctl_power.Enable(False)
         self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.OnPower)
         self.ctl_hv = xrc.XRCCTRL(self.dialog, 'ctl_hv')
         self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.OnHV)
@@ -258,7 +257,8 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # disable the controls until powered on
-        self.enable_power_controls(True)
+        self.ctl_power.Enable(False)
+        self.enable_power_controls(False)
 
     @call_in_wx_main
     def _set_gui_from_val(self):
@@ -320,17 +320,17 @@ class JoltApp(wx.App):
         Event on window close
         """
         # Check if the user should power down
-#         if self._power:
-#             dlg = wx.MessageDialog(None, "Power down the Jolt hardware before closing the application?", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
-#             dlg.SetOKCancelLabels("Power down", "Cancel closing")
-#             result = dlg.ShowModal()
-# 
-#             if result == wx.ID_OK:
-#                 logging.info("Powering down Jolt...")
-#                 self.dev.set_power(False)
-#             else:
-#                 # Cancel closing
-#                 return
+        if self._power:
+            dlg = wx.MessageDialog(None, "Power down the Jolt hardware before closing the application?", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            dlg.SetOKCancelLabels("Power down", "Cancel closing")
+            result = dlg.ShowModal()
+ 
+            if result == wx.ID_OK:
+                logging.info("Powering down Jolt...")
+                self.dev.set_target_mppc_temp(24)
+            else:
+                # Cancel closing
+                return
 
         # end the polling thread
         self.should_close.set()
@@ -343,26 +343,18 @@ class JoltApp(wx.App):
 
     def OnPower(self, event):
         # Toggle the power value
-        #logging.warning("Power toggling not implemented yet.")
-        self._power = not self._power
-        
-        if self._power:
-            self.dev.set_target_mppc_temp(-10)
-        else:
-            self.dev.set_target_mppc_temp(24)
-            
-        
-        logging.info("Power: %s", self._power)
-        #self.dev.set_power(self._power)
-        self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
-# 
-#         # disable HV if power is off
-#         if not self._power:
-#             self._hv = False
-#             self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
-#             self.enable_power_controls(False)
-#         else:
-#             self.enable_power_controls()
+        if self.ctl_power.IsEnabled():
+            self._power = not self._power
+            logging.info("Power: %s", self._power)
+            if self._power:
+                self.dev.set_target_mppc_temp(-10)
+            else:
+                self.dev.set_target_mppc_temp(24)
+            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
+            if self._power:
+                self.enable_power_controls(True)
+            else:
+                self.enable_power_controls(False)
 
     def OnHV(self, event):
         # Toggle the HV value
@@ -450,6 +442,8 @@ class JoltApp(wx.App):
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
         if not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]:
             self.ctl_power.Enable(False)
+        else:
+            self.ctl_power.Enable(True)
         
         # check the error status
         if self.err != 0:

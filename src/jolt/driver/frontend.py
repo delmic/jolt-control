@@ -453,10 +453,10 @@ class JOLTSimulator():
         self.offset = int(5e6)  # µV
         self.gain = int(10e6)  # µV
         self.mppc_temp = int(30e6)  # µC
-        self.cold_plate_temp = int(-10e6)  # µC
+        self.cold_plate_temp = int(24e6)  # µC
         self.hot_plate_temp = int(35e6)  # µC
         self.mppc_current = int(50e6)  # µV
-        self.vacuum_pressure = int(23e3)  # µBar
+        self.vacuum_pressure = int(50e3)  # µBar
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
 
@@ -558,6 +558,7 @@ class JOLTSimulator():
         elif com == CMD_SET_MPPC_TEMP:
             self._sendStatus(ACK)
             self.mppc_temp = int.from_bytes(arg, 'little', signed=True)
+            threading.Thread(target=self._change_temp).start()
         elif com == CMD_GET_HOT_PLATE_TEMP:
             self.hot_plate_temp += random.randint(-2e6, 2e6)
             self._sendStatus(ACK)
@@ -594,3 +595,13 @@ class JOLTSimulator():
             # TODO: error code
             logging.error("Unknown command %s" % com)
             self._sendStatus(NAK)
+
+    def _change_temp(self):
+        if self.cold_plate_temp > self.mppc_temp:
+            while self.cold_plate_temp - self.mppc_temp > 0:
+                self.cold_plate_temp -= 5000000
+                time.sleep(2)
+        else:
+            while self.cold_plate_temp - self.mppc_temp < 0:
+                self.cold_plate_temp += 5000000
+                time.sleep(2)

@@ -371,8 +371,6 @@ class JOLT():
         :raises: (JOLTError) error containing status code and corresponding message
         """
         # Frame command
-        if cmd == CMD_SET_CHANNEL:
-            logging.error("argument: %s", arg)
         cmd = chr(cmd).encode('latin1')
         msg = SOH + ID_CMD + len(arg).to_bytes(1, 'little', signed=True) + cmd + arg + EOT
 
@@ -390,12 +388,7 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            #logging.debug("Received status message %s" % stat)
-            
-    #         if stat[0:1] != SOH or stat[1:2] != ID_STATUS or stat[3:4] != US or stat[5:6] != EOT or stat[2:3] != stat[4:5]:
-    #             raise IOError("Status message %s has unexpected format." % stat)
-    #         if stat[2:3] != ACK:
-    #             raise JOLTError(stat[2])
+            logging.debug("Received status message %s" % stat)
 
     def _send_query(self, cmd, arg=b""):
         """
@@ -411,7 +404,7 @@ class JOLT():
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending command %s", msg)
+            logging.debug("Sending query %s", msg)
             self._serial.write(msg)
 
             # Parse status
@@ -423,28 +416,26 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            logging.debug("Received status message %s" % stat)
+            logging.debug("Received status %s" % stat)
 
             # Read response
             resp = b''
-            resp += self._serial.read(2) 
-            l = self._serial.read()
-            resp += l
-            if resp[1:2] != b'M':
-                l = int.from_bytes(l, 'little', signed=True)
-                resp += self._serial.read(2)
-                m = self._serial.read(l)
-                resp += m
-                resp += self._serial.read(2)
-                return resp[4:-1]
-            else:
+            resp += self._serial.read(2)  # SOH, message type
+            if resp[1] == ord(b'M'):  # message type
                 char = b""
-                while char != EOT:
-                    char = self._serial.read()
-                    if not char:
-                        raise IOError("Timeout after receiving %s" % resp)
-                    resp += char
-                return resp[3:-2]
+                while resp[-1] != ord(EOT):
+                    resp += self._serial.read()
+                ret = resp[3:-2]
+            else:  # binary type
+                l = self._serial.read()  # argument length
+                resp += l
+                l = int.from_bytes(l, 'little', signed=True)
+                resp += self._serial.read(1)  # US
+                resp += self._serial.read(l)  # message
+                resp += self._serial.read(1)  # EOT
+                ret = resp[4:-1]
+            logging.debug("Received response %s" % resp)
+            return ret
         
     def terminate(self):
         pass
@@ -462,7 +453,7 @@ class JOLTSimulator():
         self.offset = int(5e6)  # µV
         self.gain = int(10e6)  # µV
         self.mppc_temp = int(30e6)  # µC
-        self.cold_plate_temp = -10e6  # µC
+        self.cold_plate_temp = int(-10e6)  # µC
         self.hot_plate_temp = int(35e6)  # µC
         self.mppc_current = int(50e6)  # µV
         self.vacuum_pressure = int(23e3)  # µBar
@@ -502,8 +493,8 @@ class JOLTSimulator():
     def _sendAnswer(self, ans, ptype=ID_ASCII):
         # TODO: message type (byte 4)
         #logging.debug("Sending response %s" % ans)
-        mtype = 'T'.encode('latin1')
-        self._output_buf += SOH + ptype + len(ans).to_bytes(1, 'little', signed=True) + mtype + US + ans + ETX + EOT
+        mtype = 'B'.encode('latin1')
+        self._output_buf += SOH + mtype + len(ans).to_bytes(1, 'little', signed=True) + US + ans + EOT
 
     def _parseMessage(self, msg):
         """
@@ -513,8 +504,8 @@ class JOLTSimulator():
 
         #logging.debug("SIM: parsing %s", msg)
 
-        com = msg[2:3]
-        arglen = msg[3]
+        com = msg[3]
+        arglen = msg[2]
         arg = msg[4:4+arglen]
         
         if msg[0] != SOH or msg[-1] != EOT:

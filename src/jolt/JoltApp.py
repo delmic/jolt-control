@@ -98,6 +98,8 @@ class JoltApp(wx.App):
         self.vacuum_pressure = 0.0
         self.err = 0
 
+        self._debug_mode = False
+
         # set of warnings currently active
         self.warnings = set()
         self.error_codes = set()
@@ -259,7 +261,19 @@ class JoltApp(wx.App):
         # disable the controls until powered on
         self.ctl_power.Enable(False)
         self.enable_power_controls(False)
+        
+        # Debugging: allow shortcut to enable all controls
+        self.Bind(wx.EVT_KEY_DOWN, self._on_key)
 
+    @call_in_wx_main
+    def _on_key(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_F5:
+            if self._debug_mode:
+                self._debug_mode = False
+            else:
+                self._debug_mode = True
+        
     @call_in_wx_main
     def _set_gui_from_val(self):
         # Set the values from the currently loaded values
@@ -440,11 +454,18 @@ class JoltApp(wx.App):
 
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
-        if not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]:
+        if (not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
+            and not self._power):  # don't allow to turn it on, but turning it off should still work
             self.ctl_power.Enable(False)
         else:
             self.ctl_power.Enable(True)
-        
+            
+        if self._debug_mode:
+            self.ctl_power.Enable(True)
+            self.enable_power_controls(True)
+        elif not self._debug_mode and not self._power:
+            self.enable_power_controls(False)
+
         # check the error status
         if self.err != 0:
             # Report error

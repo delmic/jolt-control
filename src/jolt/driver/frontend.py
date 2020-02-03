@@ -50,7 +50,6 @@ CMD_GET_FRONTEND_COMPILE_TIME = 0x73
 CMD_GET_FRONTEND_SERIAL_NUM = 0x74
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_GET_HOT_PLATE_TEMP = 0x8d
-CMD_GET_ERROR = 0x9e,
 CMD_SET_TEMP = 0xb0
 CMD_SET_MPPC_CURRENT = 0xc9  # setvbias               
 ERROR_CODE = chr(0x59).encode('latin1')
@@ -62,20 +61,24 @@ CMD_GET_CHANNEL_LIST = 0x00
 
 # Currently in use
 CMD_GET_MPPC_TEMP = 0xb1
-CMD_GET_MPPC_CURRENT = 0x8a  # get vs
+CMD_GET_MPPC_CURRENT = 0xbe # show singleneded output #0x8a  # get vs
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_GET_VACUUM_PRESSURE = 0x92
 
 CMD_SET_GAIN = 0x89
 CMD_SET_CHANNEL = 0x91
 CMD_SET_VOLTAGE = 0xc9
-CMD_SET_OFFSET = 0x9b  # setvosprog
+CMD_SET_OFFSET = 0xbf#0x9b  # setvosprog
 CMD_GET_GAIN = 0x88
 CMD_GET_CHANNEL = 0x90
 CMD_GET_VOLTAGE = 0x95
 CMD_GET_OFFSET = 0x9a
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_SET_MPPC_TEMP = 0xb0
+
+CMD_SET_DifferentialOutput = 0xba
+CMD_SET_SingleEndedOutput = 0xbd
+CMD_GET_ERROR = 0x9e
 
 CHANNEL_PAN = 7
 CHANNEL_R = 2
@@ -146,7 +149,18 @@ class JOLT():
         """
         b = self._send_query(CMD_GET_VERSION)  # 40 bytes
         return b.decode('latin1')
-    
+
+    def set_signal_type(self, single_ended):
+        """
+        :arg single_ended: True for single ended, false for differential
+        """
+        if single_ended:
+            self._send_cmd(CMD_SET_DifferentialOutput, int(0).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_SingleEndedOutput, int(1).to_bytes(1, 'little', signed=True))
+        else:
+            self._send_cmd(CMD_SET_DifferentialOutput, int(1).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_SingleEndedOutput, int(0).to_bytes(1, 'little', signed=True))
+        
     def set_power(self, val):
         """
         :param val: (bool) True for on, False for off
@@ -208,9 +222,9 @@ class JOLT():
 #         return offset
         b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
         offset = int.from_bytes(b, 'little', signed=True)
-        offset = offset / 1000 * 100
+        offset = offset / 4095 * 100
         return offset
-    
+
     def set_offset(self, val):
         """
         :param val: (-5 <= float <= 5) output offset
@@ -222,7 +236,7 @@ class JOLT():
 #             logging.error("Offset %.6f out of range -5 <= offset <= 5." % val)
 #         b = int(val * 1e6).to_bytes(4, 'little', signed=True)
 #         self._send_cmd(CMD_SET_OFFSET, b)
-        val = val / 100 * 1000
+        val = val / 100 * 4095
         b = int(val).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_OFFSET, b)
     
@@ -263,7 +277,7 @@ class JOLT():
         :returns: (0 <= float <= 5): VideoIn Reading in V
         """
         b = self._send_query(CMD_GET_MPPC_CURRENT)  # 4 bytes, 0 - 5e6
-        return int.from_bytes(b, 'little', signed=True) * 1e-6
+        return int.from_bytes(b, 'little', signed=True) #* 1e-6
     
     def get_vacuum_pressure(self):
         """
@@ -290,7 +304,11 @@ class JOLT():
                                                                                      CHANNEL_B, CHANNEL_PAN))
         b = val.to_bytes(1, 'little', signed=True)
         self._send_cmd(CMD_SET_CHANNEL, b)
-    
+
+    def get_error_status(self):
+        b = self._send_query(CMD_GET_ERROR)  # 1 byte
+        return int.from_bytes(b, 'little', signed=True)
+
     def call_auto_bc(self):
         raise NotImplementedError()
 

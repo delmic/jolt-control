@@ -105,7 +105,7 @@ class JoltApp(wx.App):
         self.mpcc_temp = 0.0
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
-        self.err = 0
+        self.err = 8  # 8 means no error
 
         self._debug_mode = False
 
@@ -128,6 +128,9 @@ class JoltApp(wx.App):
         logging.info("Frontend firmware: %s" % self.dev.get_fe_fw_version())
         logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
         logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
+
+        # Output single-ended, not differential
+        self.dev.set_signal_type(single_ended=True)
 
         # start the thread for polling
         self.polling_thread = threading.Thread(target=self._do_poll)
@@ -258,7 +261,7 @@ class JoltApp(wx.App):
 
         # Live displays
         self.txtbox_current = xrc.XRCCTRL(self.dialog, 'txtbox_current')
-        self.txtbox_current.Enable(False)
+        #self.txtbox_current.Enable(False)
         self.txtbox_MPPCTemp = xrc.XRCCTRL(self.dialog, 'txtbox_MPPCTemp')
         self.txtbox_sinkTemp = xrc.XRCCTRL(self.dialog, 'txtbox_sinkTemp')
         self.txtbox_vacuumPressure = xrc.XRCCTRL(self.dialog, 'txtbox_vacuumPressure')
@@ -276,6 +279,7 @@ class JoltApp(wx.App):
         
         # Debugging: allow shortcut to enable all controls
         self.Bind(wx.EVT_KEY_DOWN, self._on_key)
+        self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')
 
     @call_in_wx_main
     def _on_key(self, event):
@@ -285,6 +289,7 @@ class JoltApp(wx.App):
                 self._debug_mode = False
             else:
                 self._debug_mode = True
+        self.refresh()
         
     @call_in_wx_main
     def _set_gui_from_val(self):
@@ -373,7 +378,10 @@ class JoltApp(wx.App):
             self._power = not self._power
             logging.info("Power: %s", self._power)
             if self._power:
-                self.dev.set_target_mppc_temp(-10)
+                if self._debug_mode:
+                    self.dev.set_target_mppc_temp(10)
+                else:
+                    self.dev.set_target_mppc_temp(-10)
             else:
                 self.dev.set_target_mppc_temp(24)
             self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
@@ -454,8 +462,8 @@ class JoltApp(wx.App):
         """
         Refreshes the GUI display values
         """
-        self.txtbox_current.SetValue("N/A")
-        #self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
+        #self.txtbox_current.SetValue("N/A")
+        self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
         #self.check_saferange(self.txtbox_current, self.mpcc_current, driver.SAFERANGE_MPCC_CURRENT, "MPCC Current")
 
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mpcc_temp)
@@ -475,26 +483,29 @@ class JoltApp(wx.App):
         if self._debug_mode:
             self.ctl_power.Enable(True)
             self.enable_power_controls(True)
+            self.power_label.SetLabel("Power-DEBUG")
+            self.power_label.SetForegroundColour(wx.Colour(wx.RED))
+
         elif not self._debug_mode and not self._power:
             self.enable_power_controls(False)
 
-#         # check the error status
-#         if self.err != 0:
-#             # Report error
-#             logging.error("Error code: %d", self.err)
-# 
-#             if not self.err in self.error_codes:
-#                 msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.err,),
-#                                                  parent=self.dialog,flags=wx.ICON_ERROR)
-# 
-#                 msg.Show()
-# 
-#             # this way, the warning message is only displayed when the warning first occurs
-#             self.error_codes.add(self.err)
-# 
-#         else:
-#             # errors cleared
-#             self.error_codes.clear()
+        if not self._debug_mode:
+            self.power_label.SetLabel("Power")
+            self.power_label.SetForegroundColour(wx.Colour(wx.BLACK))
+        # check the error status
+        if self.err != 8:
+            # Report error
+            logging.error("Error code: %d", self.err)
+            if not self.err in self.error_codes:
+                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.err,),
+                                                 parent=self.dialog,flags=wx.ICON_ERROR)
+                msg.Show()
+
+            # this way, the warning message is only displayed when the warning first occurs
+            self.error_codes.add(self.err)
+        else:
+            # errors cleared
+            self.error_codes.clear()
 
     def _do_poll(self):
         """
@@ -510,10 +521,9 @@ class JoltApp(wx.App):
                 #self.err = self.dev.get_error_status()
                 # refresh gui with these values
                 self.refresh()
-
-                logging.info("Gain: %s, offset: %s, channel: %s, voltage: %s",
-                             self.dev.get_gain(), self.dev.get_offset(), self.dev.get_channel(),
-                             self.dev.get_voltage())
+                logging.info("Gain: %s, channel: %s, voltage: %s",
+                             self.dev.get_gain(), self.dev.get_channel(), self.dev.get_voltage())
+                self.err = self.dev.get_error_status()
 
                 # refresh gain & offset if auto BC was called
                 if self._call_auto_bc.is_set():

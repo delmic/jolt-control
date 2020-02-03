@@ -245,6 +245,9 @@ class JoltApp(wx.App):
         self.btn_auto_bc = xrc.XRCCTRL(self.dialog, 'btn_AutoBC')
         self.dialog.Bind(wx.EVT_BUTTON, self.OnAutoBC, id=xrc.XRCID('btn_AutoBC'))
 
+        # tooltip power
+        self.ctl_power.ToolTip = wx.ToolTip("Cooling can only be turned on if pressure is OK")
+
         # voltage
         self.spinctrl_voltage = xrc.XRCCTRL(self.dialog, 'spn_voltage')
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnVoltage, id=xrc.XRCID('spn_voltage'))
@@ -352,6 +355,8 @@ class JoltApp(wx.App):
         self.btn_auto_bc.Enable(False)  # not implemented yet
         self.enable_gain_offset_controls(val)
         self.channel_ctrl.Enable(val)
+        self.spinctrl_voltage.Enable(val)
+        self.ctl_hv.Enable(val)
 
     def OnClose(self, event):
         """

@@ -91,11 +91,14 @@ class JoltApp(wx.App):
         try:
             self.dev = driver.JOLT(simulated)
             self._startup_error = False
-        except IOError:
+        except IOError as ex:
             self._startup_error = True
             super().__init__(self)
             wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
+            logging.error("Jolt failed to start: %s", ex)
+        except Exception as ex:
+            logging.error("Jolt failed to start: %s", ex)
 
         self._simulated = simulated
         self.should_close = threading.Event()

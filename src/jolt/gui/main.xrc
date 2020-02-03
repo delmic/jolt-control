@@ -153,7 +153,7 @@
 							<growablerows></growablerows>
 							<object class="sizeritem">
 								<option>0</option>
-								<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+								<flag>wxALIGN_CENTER_VERTICAL|wxLEFT|wxTOP</flag>
 								<border>5</border>
 								<object class="wxStaticText" name="m_staticText7">
 									<label>Channel</label>
@@ -162,12 +162,12 @@
 							</object>
 							<object class="sizeritem">
 								<option>0</option>
-								<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-								<border>5</border>
+								<flag></flag>
+								<border>0</border>
 								<object class="wxRadioBox" name="radio_channel">
 									<style>wxRA_SPECIFY_COLS</style>
 									<label></label>
-									<selection>0</selection>
+									<selection>2</selection>
 									<content>
 										<item>R</item>
 										<item>G</item>

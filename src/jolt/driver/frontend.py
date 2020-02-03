@@ -478,6 +478,9 @@ class JOLTSimulator():
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
 
+        self._temp_thread = None
+        self._stop_thread = False  # temperature thread
+
     def write(self, data):
         self._input_buf += data
         self._parseMessage(self._input_buf)  # will update _output_buf
@@ -575,8 +578,11 @@ class JOLTSimulator():
             self._sendAnswer(self.mppc_temp.to_bytes(4, 'little', signed=True))
         elif com == CMD_SET_MPPC_TEMP:
             self._sendStatus(ACK)
+            if self._temp_thread:  # if it's already changing temperature, stop it
+                self._stop_thread = True
+                self._temp_thread.join()
             self.mppc_temp = int.from_bytes(arg, 'little', signed=True)
-            threading.Thread(target=self._change_temp).start()
+            self._temp_thread = threading.Thread(target=self._change_temp).start()
         elif com == CMD_GET_HOT_PLATE_TEMP:
             self.hot_plate_temp += random.randint(-2e6, 2e6)
             self._sendStatus(ACK)
@@ -615,11 +621,12 @@ class JOLTSimulator():
             self._sendStatus(NAK)
 
     def _change_temp(self):
+        self._stop_thread = False
         if self.cold_plate_temp > self.mppc_temp:
-            while self.cold_plate_temp - self.mppc_temp > 0:
+            while not self._stop_thread and self.cold_plate_temp - self.mppc_temp > 0:
                 self.cold_plate_temp -= 5000000
                 time.sleep(2)
         else:
-            while self.cold_plate_temp - self.mppc_temp < 0:
+            while not self._stop_thread and self.cold_plate_temp - self.mppc_temp < 0:
                 self.cold_plate_temp += 5000000
                 time.sleep(2)

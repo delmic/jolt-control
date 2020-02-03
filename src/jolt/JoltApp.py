@@ -97,6 +97,7 @@ class JoltApp(wx.App):
             wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
 
+        self._simulated = simulated
         self.should_close = threading.Event()
 
         # Load config
@@ -280,6 +281,9 @@ class JoltApp(wx.App):
         # Debugging: allow shortcut to enable all controls
         self.Bind(wx.EVT_KEY_DOWN, self._on_key)
         self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')
+
+        if self._simulated:
+            self.dialog.SetTitle("Delmic Jolt Simulator")
 
     @call_in_wx_main
     def _on_key(self, event):

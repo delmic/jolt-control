@@ -2,7 +2,6 @@
 <resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
 	<object class="wxDialog" name="ControlWindow">
 		<style>wxDEFAULT_DIALOG_STYLE|wxMINIMIZE_BOX</style>
-		<size>-1,640</size>
 		<font>
 			<size>12</size>
 			<family>swiss</family>
@@ -22,11 +21,28 @@
 				<object class="wxBoxSizer">
 					<orient>wxHORIZONTAL</orient>
 					<object class="sizeritem">
-						<option>0</option>
-						<flag></flag>
-						<border>5</border>
-						<object class="wxStaticBitmap" name="m_bitmap111">
-							<bitmap>img/jolt_logo.png</bitmap>
+						<option>1</option>
+						<flag>wxEXPAND|wxTOP</flag>
+						<border>0</border>
+						<object class="wxBoxSizer">
+							<orient>wxHORIZONTAL</orient>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxStaticBitmap" name="ctl_power">
+									<bitmap>img/icons8-toggle-off-32.png</bitmap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALIGN_CENTER_VERTICAL|wxALIGN_LEFT|wxALL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="m_staticText16">
+									<label>Power</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
 						</object>
 					</object>
 					<object class="spacer">
@@ -48,121 +64,69 @@
 				</object>
 			</object>
 			<object class="sizeritem">
-				<option>1</option>
+				<option>0</option>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>
 				<object class="wxBoxSizer">
-					<orient>wxVERTICAL</orient>
+					<orient>wxHORIZONTAL</orient>
+				</object>
+			</object>
+			<object class="sizeritem">
+				<option>0</option>
+				<flag>wxLEFT</flag>
+				<border>5</border>
+				<object class="wxFlexGridSizer">
+					<rows>1</rows>
+					<cols>4</cols>
+					<vgap>0</vgap>
+					<hgap>0</hgap>
+					<growablecols></growablecols>
+					<growablerows></growablerows>
 					<object class="sizeritem">
 						<option>0</option>
-						<flag>wxEXPAND|wxALL</flag>
+						<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
-						<object class="wxBoxSizer">
-							<orient>wxHORIZONTAL</orient>
-							<object class="sizeritem">
-								<option>1</option>
-								<flag>wxEXPAND</flag>
-								<border>5</border>
-								<object class="wxFlexGridSizer">
-									<rows>2</rows>
-									<cols>2</cols>
-									<vgap>0</vgap>
-									<hgap>20</hgap>
-									<growablecols></growablecols>
-									<growablerows></growablerows>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-										<border>5</border>
-										<object class="wxStaticText" name="m_staticText16">
-											<label>Power</label>
-											<wrap>-1</wrap>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>1</option>
-										<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
-										<border>5</border>
-										<object class="wxStaticBitmap" name="ctl_power">
-											<bitmap>img/icons8-toggle-off-32.png</bitmap>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>1</option>
-										<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<object class="wxStaticText" name="m_staticText17">
-											<font>
-												<style>normal</style>
-												<weight>normal</weight>
-												<underlined>0</underlined>
-											</font>
-											<label>Bias Voltage</label>
-											<wrap>-1</wrap>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
-										<border>5</border>
-										<object class="wxStaticBitmap" name="ctl_hv">
-											<bitmap>img/icons8-toggle-off-32.png</bitmap>
-										</object>
-									</object>
-								</object>
-							</object>
-							<object class="sizeritem">
-								<option>1</option>
-								<flag>wxEXPAND</flag>
-								<border>5</border>
-								<object class="wxFlexGridSizer">
-									<rows>2</rows>
-									<cols>3</cols>
-									<vgap>0</vgap>
-									<hgap>0</hgap>
-									<growablecols></growablecols>
-									<growablerows></growablerows>
-									<object class="sizeritem">
-										<option>1</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-										<border>5</border>
-										<object class="wxStaticText" name="m_staticText1">
-											<pos>-1,-1</pos>
-											<label>Operating Voltage</label>
-											<wrap>-1</wrap>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxALL</flag>
-										<border>5</border>
-										<object class="wxSpinCtrlDouble" name="spn_voltage">
-											<style>wxSP_ARROW_KEYS</style>
-											<size>75,-1</size>
-											<value>3.600000</value>
-											<min>0</min>
-											<max>70</max>
-											<inc>0.1</inc>
-											<digits>2</digits>
-										</object>
-									</object>
-									<object class="sizeritem">
-										<option>0</option>
-										<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
-										<border>5</border>
-										<object class="wxStaticText" name="m_staticText2">
-											<label>V</label>
-											<wrap>-1</wrap>
-										</object>
-									</object>
-								</object>
-							</object>
+						<object class="wxStaticBitmap" name="ctl_hv">
+							<bitmap>img/icons8-toggle-off-32.png</bitmap>
+						</object>
+					</object>
+					<object class="sizeritem">
+						<option>1</option>
+						<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+						<border>5</border>
+						<object class="wxStaticText" name="m_staticText1">
+							<pos>-1,-1</pos>
+							<label>Operating Voltage</label>
+							<wrap>-1</wrap>
+						</object>
+					</object>
+					<object class="sizeritem">
+						<option>0</option>
+						<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+						<border>5</border>
+						<object class="wxSpinCtrlDouble" name="spn_voltage">
+							<style>wxSP_ARROW_KEYS</style>
+							<size>75,-1</size>
+							<value>3.100000</value>
+							<min>0</min>
+							<max>50</max>
+							<inc>0.5</inc>
+							<digits>2</digits>
+						</object>
+					</object>
+					<object class="sizeritem">
+						<option>0</option>
+						<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+						<border>5</border>
+						<object class="wxStaticText" name="m_staticText2">
+							<label>V</label>
+							<wrap>-1</wrap>
 						</object>
 					</object>
 				</object>
 			</object>
 			<object class="sizeritem">
-				<option>2</option>
+				<option>3</option>
 				<flag>wxALL|wxEXPAND</flag>
 				<border>5</border>
 				<object class="wxStaticBoxSizer">
@@ -329,7 +293,7 @@
 				</object>
 			</object>
 			<object class="sizeritem">
-				<option>2</option>
+				<option>3</option>
 				<flag>wxEXPAND|wxALL</flag>
 				<border>5</border>
 				<object class="wxStaticBoxSizer">

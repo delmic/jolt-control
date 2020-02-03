@@ -26,7 +26,8 @@ exe = EXE(pyz,
           bootloader_ignore_signals=False,
           strip=False,
           upx=True,
-          console=False )
+          console=False,
+          icon='../../src/jolt/gui/img/jolt-icon.png')
 coll = COLLECT(exe,
                a.binaries,
                a.zipfiles,

@@ -21,6 +21,14 @@
 				<border>5</border>
 				<object class="wxBoxSizer">
 					<orient>wxHORIZONTAL</orient>
+					<object class="sizeritem">
+						<option>0</option>
+						<flag></flag>
+						<border>5</border>
+						<object class="wxStaticBitmap" name="m_bitmap111">
+							<bitmap>img/jolt_logo.png</bitmap>
+						</object>
+					</object>
 					<object class="spacer">
 						<option>1</option>
 						<flag>wxEXPAND</flag>

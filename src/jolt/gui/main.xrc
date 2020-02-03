@@ -162,8 +162,8 @@
 							</object>
 							<object class="sizeritem">
 								<option>0</option>
-								<flag></flag>
-								<border>0</border>
+								<flag>wxBOTTOM</flag>
+								<border>6</border>
 								<object class="wxRadioBox" name="radio_channel">
 									<style>wxRA_SPECIFY_COLS</style>
 									<label></label>
@@ -315,7 +315,7 @@
 								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxStaticText" name="m_staticText8">
-									<label>Output Current</label>
+									<label>Output Signal</label>
 									<wrap>-1</wrap>
 								</object>
 							</object>
@@ -333,7 +333,7 @@
 								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxStaticText" name="m_staticText9">
-									<label>mA</label>
+									<label></label>
 									<wrap>-1</wrap>
 								</object>
 							</object>

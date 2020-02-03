@@ -41,6 +41,16 @@ TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 # Get app config directories
 SAVE_CONFIG = True  # whether or not to save the last values to .ini
 dirs = AppDirs("Jolt", "Delmic")
@@ -50,7 +60,7 @@ else:
     # Create directory if it doesn't exist
     try:
         os.makedirs(dirs.user_data_dir)
-        copyfile('jolt.ini', os.path.join(dirs.user_data_dir, 'jolt.ini'))
+        copyfile(resource_path('jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
         CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
     except:
         logging.error("Failed to create user data directory, using default .ini file.")
@@ -66,9 +76,10 @@ else:
         LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
     except:
         logging.error("Failed to create user log directory, using default .ini file.")
-        LOG_FILE = 'jolt.log'
+        LOG_FILE = resource_path('jolt.log')
 
 POLL_INTERVAL = 1.0 # seconds
+
 
 class JoltApp(wx.App):
     """
@@ -186,9 +197,9 @@ class JoltApp(wx.App):
         self._init_dialog()
 
         # load bitmaps
-        self.bmp_off = wx.Bitmap("gui/img/icons8-toggle-off-32.png")
-        self.bmp_on = wx.Bitmap("gui/img/icons8-toggle-on-32.png")
-        self.bmp_icon = wx.Bitmap("gui/img/jolt-icon.png")
+        self.bmp_off = wx.Bitmap(resource_path("gui/img/icons8-toggle-off-32.png"))
+        self.bmp_on = wx.Bitmap(resource_path("gui/img/icons8-toggle-on-32.png"))
+        self.bmp_icon = wx.Bitmap(resource_path("gui/img/jolt-icon.png"))
 
         # set icon
         icon = wx.Icon()
@@ -209,7 +220,7 @@ class JoltApp(wx.App):
         """
 
         # XRC Loading
-        self.res = xrc.XmlResource('gui/main.xrc')
+        self.res = xrc.XmlResource(resource_path('gui/main.xrc'))
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')

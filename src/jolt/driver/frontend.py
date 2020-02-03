@@ -356,10 +356,8 @@ class JOLT():
             return serial
 
         if os.name == "nt":
-            #return self._openSerialPort("COM1", baudrate)
-            ports = glob.glob("COM*")
+            ports = ["COM1", "COM2", "COM3", "COM4", "COM5", "COM6"]
         else:
-            #return self._openSerialPort("/dev/ttyUSB1", baudrate)
             ports = glob.glob("/dev/ttyUSB*")
  
         for n in ports:

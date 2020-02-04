@@ -446,9 +446,9 @@
                                 <property name="gripper">0</property>
                                 <property name="hidden">0</property>
                                 <property name="id">wxID_ANY</property>
-                                <property name="inc">0.5</property>
-                                <property name="initial">3.100000</property>
-                                <property name="max">50</property>
+                                <property name="inc">0.05</property>
+                                <property name="initial">3.600000</property>
+                                <property name="max">80</property>
                                 <property name="max_size"></property>
                                 <property name="maximize_button">0</property>
                                 <property name="maximum_size"></property>

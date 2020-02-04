@@ -296,7 +296,11 @@ class JoltApp(wx.App):
         self.enable_power_controls(False)
         
         # Debugging: allow shortcut to enable all controls
-        self.Bind(wx.EVT_KEY_DOWN, self._on_key)
+        f5_id = wx.NewId()
+        self.dialog.Bind(wx.EVT_MENU, self._on_key, id=f5_id)
+        accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id)])
+        self.dialog.SetAcceleratorTable(accel_tbl)
+
         self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')
 
         if self._simulated:
@@ -304,12 +308,17 @@ class JoltApp(wx.App):
 
     @call_in_wx_main
     def _on_key(self, event):
-        keycode = event.GetKeyCode()
-        if keycode == wx.WXK_F5:
-            if self._debug_mode:
-                self._debug_mode = False
-            else:
-                self._debug_mode = True
+        if self._debug_mode:
+            self._debug_mode = False
+        else:
+            passwd = wx.PasswordEntryDialog(None, "Enter Debug Mode", 'Password','',
+                                            style=wx.TextEntryDialogStyle)
+            ans = passwd.ShowModal()
+            if ans == wx.ID_OK:
+                entered_password = passwd.GetValue()
+                if entered_password == "delmic":
+                    self._debug_mode = True
+            passwd.Destroy()
         self.refresh()
         
     @call_in_wx_main

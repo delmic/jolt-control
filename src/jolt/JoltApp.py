@@ -78,7 +78,7 @@ else:
         logging.error("Failed to create user log directory, using default .ini file.")
         LOG_FILE = resource_path('jolt.log')
 
-POLL_INTERVAL = 1.0 # seconds
+POLL_INTERVAL = 2.0 # seconds
 
 
 class JoltApp(wx.App):
@@ -105,9 +105,12 @@ class JoltApp(wx.App):
         except IOError as ex:
             self._startup_error = True
             super().__init__(self)
-            wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
+            dlg = wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
+            result = dlg.ShowModal()
+            if result == wx.ID_OK:
+                sys.exit()
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
 
@@ -116,11 +119,11 @@ class JoltApp(wx.App):
 
         # Load config
         self._voltage, self._gain, self._offset = self.load_config()
-        self.mpcc_current = 0.0
+        self.voltage = 0.0
         self.mpcc_temp = 0.0
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
-        self.err = 8  # 8 means no error
+        self.error = 8  # 8 means no error
 
         # settings
         self._power = False
@@ -136,6 +139,7 @@ class JoltApp(wx.App):
         super().__init__(self)
 
         # Get information from hardware for the log
+        logging.info("Software version: %s", jolt.__version__)
         logging.info("Backend firmware: %s" % self.dev.get_be_fw_version())
         logging.info("Backend hardware: %s" % self.dev.get_be_hw_version())
         logging.info("Backend serial number: %s" % self.dev.get_be_sn())
@@ -339,20 +343,17 @@ class JoltApp(wx.App):
         if srange[0] <= val <= srange[1]:
             textctrl.SetForegroundColour(wx.BLACK)
             if name in self.warnings:
-                # clear the warning if the error goes away
-                self.warnings.remove(name)
+                self.warnings.remove(name)  # clear the warning if the error goes away
         else:
             textctrl.SetForegroundColour(wx.RED)
             # this way, the warning message is only displayed when the warning first occurs
             if name not in self.warnings:
                 self.warnings.add(name)
                 msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
-                                    flags=wx.ICON_WARNING)
-
+                                                 flags=wx.ICON_WARNING)
                 msg.Show()
             logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
                             name, val, srange[0], srange[1])
-
 
     def OnClose(self, event):
         """
@@ -384,7 +385,7 @@ class JoltApp(wx.App):
         # Toggle the power value
         if self.ctl_power.IsEnabled():
             self._power = not self._power
-            logging.info("Power: %s", self._power)
+            logging.info("Changed power state to: %s", self._power)
             if self._power:
                 if self._debug_mode:
                     self.dev.set_target_mppc_temp(10)
@@ -395,14 +396,14 @@ class JoltApp(wx.App):
         # Turn voltage off
         if not self._power:
             self._hv = False
-            logging.info("HV: %s", self._hv)
+            logging.info("Changed voltage state to: %s", self._hv)
             self.dev.set_voltage(0)
         self.refresh()
 
     def OnHV(self, event):
         # Toggle the HV value
         self._hv = not self._hv
-        logging.info("HV: %s", self._hv)
+        logging.info("Changed voltage state to: %s", self._hv)
 
         if self._hv:
             # write parameters to device
@@ -425,39 +426,35 @@ class JoltApp(wx.App):
         self._voltage = event.GetValue()
         if self._hv:
             self.dev.set_voltage(self._voltage)
-            logging.info("Voltage setting: %f V", self.dev.get_voltage())
 
     def OnRadioBox(self, event):
         channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B, "Pan": driver.CHANNEL_PAN}
-        logging.error(channels[event.GetEventObject().GetStringSelection()])
         self.dev.set_channel(channels[event.GetEventObject().GetStringSelection()])
-        ret = self.dev.get_channel()
-        logging.info("Channel: %s", ret)
+        logging.debug("Changed channel to %s", event.GetEventObject().GetStringSelection())
 
     def OnGainSlider(self, event):
         self._gain = event.GetPosition()
         self.spinctrl_gain.SetValue(self._gain)
         self.dev.set_gain(self._gain)
-        logging.info("Gain: %f %%", self.dev.get_gain())
+        logging.debug("Changed gain to %s", self._gain)
 
     def OnOffsetSlider(self, event):
         self._offset = event.GetPosition()
         self.spinctrl_offset.SetValue(self._offset)
         self.dev.set_offset(self._offset)
-        logging.info("Offset: %f %%", self.dev.get_offset())
+        logging.debug("Changed offset to %s", self._offset)
 
     def OnGainSpin(self, event):
         self._gain = event.GetValue()
         self.slider_gain.SetValue(int(self._gain))
         self.dev.set_gain(self._gain)
-        time.sleep(0.2)
-        logging.info("Gain: %f %%", self.dev.get_gain())
+        logging.debug("Changed gain to %s", self._gain)
 
     def OnOffsetSpin(self, event):
         self._offset = event.GetValue()
         self.slider_offset.SetValue(int(self._offset))
         self.dev.set_offset(self._offset)
-        logging.info("Offset: %f %%", self.dev.get_offset())
+        logging.debug("Changed offset to %s", self._offset)
 
     def OnRefreshGUI(self, event):
         self.refresh()
@@ -530,7 +527,7 @@ class JoltApp(wx.App):
         Refreshes the GUI display values
         """
         # Show settings for temperature, pressure etc
-        self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
+        self.txtbox_current.SetValue("%.2f" % self.voltage)
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mpcc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
@@ -542,16 +539,14 @@ class JoltApp(wx.App):
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 
         # Check the error status
-        if self.err != 8:
-            # Report error
-            logging.error("Error code: %d", self.err)
-            if not self.err in self.error_codes:
-                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.err,),
+        if self.error != 8:
+            if not self.error in self.error_codes:
+                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.error,),
                                                  parent=self.dialog,flags=wx.ICON_ERROR)
                 msg.Show()
 
             # this way, the warning message is only displayed when the warning first occurs
-            self.error_codes.add(self.err)
+            self.error_codes.add(self.error)
         else:
             # errors cleared
             self.error_codes.clear()
@@ -565,36 +560,27 @@ class JoltApp(wx.App):
         """
         try:
             while not self.should_close.is_set():
-                # get new values from the device
-                self.mpcc_current = self.dev.get_mppc_current()
+                # Get new values from the device
+                self.voltage = self.dev.get_voltage()
                 self.mpcc_temp = self.dev.get_cold_plate_temp()
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
-                #self.err = self.dev.get_error_status()
-                # refresh gui with these values
+                self.error = self.dev.get_error_status()
+                gain = self.dev.get_gain()
+                channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
+                                driver.CHANNEL_PAN: "PAN"}
+                channel = channel_list[self.dev.get_channel()]
+       
+                # Logging
+                logging.info("Gain: %.2f, offset: unknown, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
+                             "pressure: %.2f, voltage: %.2f, error state: %d", gain, channel, self.mppc_temp,
+                             self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.error)
+
+                # Refresh gui with these values
                 self.refresh()
-                logging.info("Gain: %s, channel: %s, voltage: %s",
-                             self.dev.get_gain(), self.dev.get_channel(), self.dev.get_voltage())
-                self.err = self.dev.get_error_status()
-
-                # refresh gain & offset if auto BC was called
-                if self._call_auto_bc.is_set():
-                    # Since we don't know how long the auto BC takes, add more time
-                    time.sleep(POLL_INTERVAL)
-
-                    logging.debug("update gain and offset values after AUTO BC")
-                    # get gain & offset updates
-                    self._gain = self.dev.get_gain()
-                    self._offset = self.dev.get_offset()
-                    logging.info("Gain: %f %%", self._gain)
-                    logging.info("Offset: %f %%", self._offset)
-                    wx.CallAfter(self._set_gui_from_val)
-                    self._call_auto_bc.clear()
-                    #wx.CallAfter(self.enable_gain_offset_controls)
 
                 # Wait till the next polling period
                 time.sleep(POLL_INTERVAL)
-                #self.should_close.wait(POLL_INTERVAL)
 
         except Exception as e:
             logging.exception(e)

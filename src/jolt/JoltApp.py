@@ -501,7 +501,7 @@ class JoltApp(wx.App):
             # disable all
             self.ctl_power.Enable(False)
             self.ctl_hv.Enable(False)
-            self.ctl_power.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.ctl_power.SetBitmap(disable_bmp(self.bmp_on) if self._power else disable_bmp(self.bmp_off))
             self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
             self.channel_ctrl.Enable(False)
             self.spinctrl_voltage.Enable(False)
@@ -528,13 +528,13 @@ class JoltApp(wx.App):
         """
         # Show settings for temperature, pressure etc
         self.txtbox_current.SetValue("%.2f" % self.voltage)
-        self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mpcc_temp)
+        self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
 
         # Check ranges, create notification if necessary
         if self._power:  # mppc temperature will always be out of range if power is off
-            self.check_saferange(self.txtbox_MPPCTemp, self.mpcc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
+            self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 
@@ -562,7 +562,7 @@ class JoltApp(wx.App):
             while not self.should_close.is_set():
                 # Get new values from the device
                 self.voltage = self.dev.get_voltage()
-                self.mpcc_temp = self.dev.get_cold_plate_temp()
+                self.mppc_temp = self.dev.get_cold_plate_temp()
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()

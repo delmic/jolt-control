@@ -252,6 +252,15 @@ class JoltApp(wx.App):
         self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.OnPower)
         self.ctl_hv = xrc.XRCCTRL(self.dialog, 'ctl_hv')
         self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.OnHV)
+        # The bitmap control should be greyed out. On linux, disabling the StaticBitmap does this
+        # automatically, however, on windows, this requires a bit more work. wx.Bitmap has a function
+        # .ConvertToDisabled(), but the resulting bitmap is almost transparent and can hardly be seen.
+        # Therefore we have to go the long way around and first convert the bitmap to an image, which
+        # can be converted to greyscale and then convert it back to a bitmap.
+        self.bmp_power_enabled = self.ctl_power.GetBitmap()
+        self.bmp_power_disabled = self.bmp_power_enabled.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
+        self.bmp_hv_enabled = self.ctl_hv.GetBitmap()
+        self.bmp_hv_disabled = self.bmp_hv_enabled.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
 
         self.btn_auto_bc = xrc.XRCCTRL(self.dialog, 'btn_AutoBC')
         self.dialog.Bind(wx.EVT_BUTTON, self.OnAutoBC, id=xrc.XRCID('btn_AutoBC'))
@@ -292,7 +301,7 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
 
         # disable the controls until powered on
-        self.ctl_power.Enable(False)
+        self.enable_power(False)
         self.enable_power_controls(False)
         
         # Debugging: allow shortcut to enable all controls
@@ -371,12 +380,23 @@ class JoltApp(wx.App):
         Enable (or disable if val=False) power controls
         :param val: (bool) default is true, but if set to false, the controls will be disabled.
         """
+        self.ctl_hv.Enable(val)
+        if not val:
+            self.ctl_hv.SetBitmap(self.bmp_hv_disabled)
+        else:
+            self.ctl_hv.SetBitmap(self.bmp_hv_enabled)
         self.btn_auto_bc.Enable(val)
         self.btn_auto_bc.Enable(False)  # not implemented yet
         self.enable_gain_offset_controls(val)
         self.channel_ctrl.Enable(val)
         self.spinctrl_voltage.Enable(val)
-        self.ctl_hv.Enable(val)
+
+    def enable_power(self, val=True):
+        self.ctl_power.Enable(val)
+        if not val:
+            self.ctl_power.SetBitmap(self.bmp_power_disabled)
+        else:
+            self.ctl_power.SetBitmap(self.bmp_power_enabled)
 
     def OnClose(self, event):
         """
@@ -508,12 +528,12 @@ class JoltApp(wx.App):
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
         if (not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
             and not self._power):  # don't allow to turn it on, but turning it off should still work
-            self.ctl_power.Enable(False)
+            self.enable_power(False)
         else:
-            self.ctl_power.Enable(True)
+            self.enable_power(True)
             
         if self._debug_mode:
-            self.ctl_power.Enable(True)
+            self.enable_power(True)
             self.enable_power_controls(True)
             self.power_label.SetLabel("Power-DEBUG")
             self.power_label.SetForegroundColour(wx.Colour(wx.RED))

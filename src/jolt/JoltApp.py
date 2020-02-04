@@ -401,7 +401,6 @@ class JoltApp(wx.App):
             self.dev.set_voltage(0)
         if self._power:
             # write parameters to device
-            self.dev.set_voltage(self._voltage)
             self.dev.set_gain(self._gain)
             self.dev.set_offset(self._offset)
             self.dev.set_channel(self._channel)

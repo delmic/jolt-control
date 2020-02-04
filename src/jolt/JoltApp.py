@@ -119,6 +119,7 @@ class JoltApp(wx.App):
 
         # Load config
         self._voltage, self._gain, self._offset = self.load_config()
+        self._channel = 1
         self.voltage = 0.0
         self.mppc_temp = 0.0
         self.heat_sink_temp = 0.0
@@ -403,6 +404,7 @@ class JoltApp(wx.App):
             self.dev.set_voltage(self._voltage)
             self.dev.set_gain(self._gain)
             self.dev.set_offset(self._offset)
+            self.dev.set_channel(self._channel)
         self.refresh()
 
     def OnHV(self, event):
@@ -415,6 +417,7 @@ class JoltApp(wx.App):
             self.dev.set_voltage(self._voltage)
             self.dev.set_gain(self._gain)
             self.dev.set_offset(self._offset)
+            self.dev.set_channel(self._channel)
         else:
             self.dev.set_voltage(0)
         self.refresh()
@@ -577,8 +580,11 @@ class JoltApp(wx.App):
                 self.voltage = self.dev.get_voltage()
                 channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
                                 driver.CHANNEL_PAN: "PAN"}
-                channel = channel_list[self.dev.get_channel()]
-       
+                try:
+                    channel = channel_list[self.dev.get_channel()]
+                except:
+                    logging.error("Received unknown channel %s", self.dev.get_channel())
+                    channel = self.dev.get_channel()
                 # Logging
                 logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
                              "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d", gain, offset, channel,

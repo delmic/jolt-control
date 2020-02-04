@@ -61,7 +61,7 @@ CMD_GET_CHANNEL_LIST = 0x00
 
 # Currently in use
 CMD_GET_MPPC_TEMP = 0xb1
-CMD_GET_MPPC_CURRENT = 0xbe # show singleneded output #0x8a  # get vs
+CMD_GET_OUTPUT_SINGLE_ENDED = 0xbe # show singleneded output #0x8a  # get vs
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_GET_VACUUM_PRESSURE = 0x92
 
@@ -79,6 +79,8 @@ CMD_SET_MPPC_TEMP = 0xb0
 CMD_SET_DifferentialOutput = 0xba
 CMD_SET_SingleEndedOutput = 0xbd
 CMD_GET_ERROR = 0x9e
+
+CMD_CB_ISP = 0xfe
 
 CHANNEL_PAN = 7
 CHANNEL_R = 2
@@ -271,12 +273,12 @@ class JOLT():
         b = self._send_query(CMD_GET_HOT_PLATE_TEMP)  # 4 bytes, -20e6 - 70e6
         return int.from_bytes(b, 'little', signed=True) * 1e-6
     
-    def get_mppc_current(self):
+    def get_output_single_ended(self):
 
         """
         :returns: (0 <= float <= 5): VideoIn Reading in V
         """
-        b = self._send_query(CMD_GET_MPPC_CURRENT)  # 4 bytes, 0 - 5e6
+        b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 5e6
         return int.from_bytes(b, 'little', signed=True) #* 1e-6
     
     def get_vacuum_pressure(self):
@@ -308,6 +310,9 @@ class JOLT():
     def get_error_status(self):
         b = self._send_query(CMD_GET_ERROR)  # 1 byte
         return int.from_bytes(b, 'little', signed=True)
+
+    def set_cb_isp_mode(self):
+        self._send_cmd(CMD_CB_ISP, (235).to_bytes(1, 'little', signed=False))
 
     def call_auto_bc(self):
         raise NotImplementedError()

@@ -122,6 +122,10 @@ class JoltApp(wx.App):
         self.vacuum_pressure = 0.0
         self.err = 8  # 8 means no error
 
+        # settings
+        self._power = False
+        self._hv = False
+        self._call_auto_bc = threading.Event()
         self._debug_mode = False
 
         # set of warnings currently active
@@ -130,11 +134,6 @@ class JoltApp(wx.App):
 
         # Initialize wx components
         super().__init__(self)
-
-        # settings
-        self._power = False
-        self._hv = False
-        self._call_auto_bc = threading.Event()
 
         # Get information from hardware for the log
         logging.info("Backend firmware: %s" % self.dev.get_be_fw_version())
@@ -252,15 +251,6 @@ class JoltApp(wx.App):
         self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.OnPower)
         self.ctl_hv = xrc.XRCCTRL(self.dialog, 'ctl_hv')
         self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.OnHV)
-        # The bitmap control should be greyed out. On linux, disabling the StaticBitmap does this
-        # automatically, however, on windows, this requires a bit more work. wx.Bitmap has a function
-        # .ConvertToDisabled(), but the resulting bitmap is almost transparent and can hardly be seen.
-        # Therefore we have to go the long way around and first convert the bitmap to an image, which
-        # can be converted to greyscale and then convert it back to a bitmap.
-        self.bmp_power_enabled = self.ctl_power.GetBitmap()
-        self.bmp_power_disabled = self.bmp_power_enabled.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
-        self.bmp_hv_enabled = self.ctl_hv.GetBitmap()
-        self.bmp_hv_disabled = self.bmp_hv_enabled.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
 
         self.btn_auto_bc = xrc.XRCCTRL(self.dialog, 'btn_AutoBC')
         self.dialog.Bind(wx.EVT_BUTTON, self.OnAutoBC, id=xrc.XRCID('btn_AutoBC'))
@@ -299,10 +289,6 @@ class JoltApp(wx.App):
 
         # catch the closing event
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
-
-        # disable the controls until powered on
-        self.enable_power(False)
-        self.enable_power_controls(False)
         
         # Debugging: allow shortcut to enable all controls
         f5_id = wx.NewId()
@@ -314,6 +300,8 @@ class JoltApp(wx.App):
 
         if self._simulated:
             self.dialog.SetTitle("Delmic Jolt Simulator")
+
+        self.refresh()
 
     @call_in_wx_main
     def _on_key(self, event):
@@ -339,16 +327,16 @@ class JoltApp(wx.App):
         self.spinctrl_gain.SetValue(self._gain)
         self.spinctrl_offset.SetValue(self._offset)
 
-    def check_saferange(self, textctrl, val, range, name):
+    def check_saferange(self, textctrl, val, srange, name):
         """
         Turn a TextCtrl text red if the val is not in the range
         Display an error message if the value is out of the range.
         :param textctrl: wx TextCtrl
         :param val: (float) a value
-        :param range: (float tuple) safe range
+        :param srange: (float tuple) safe range
         :param name: (str) the name of the parameter used in the error message
         """
-        if range[0] <= val <= range[1]:
+        if srange[0] <= val <= srange[1]:
             textctrl.SetForegroundColour(wx.BLACK)
             if name in self.warnings:
                 # clear the warning if the error goes away
@@ -362,41 +350,9 @@ class JoltApp(wx.App):
                                     flags=wx.ICON_WARNING)
 
                 msg.Show()
+            logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
+                            name, val, srange[0], srange[1])
 
-            logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).", name, val, range[0], range[1])
-
-    def enable_gain_offset_controls(self, val=True):
-        """
-        Enable (or disable if val=False) the gain and offset controls
-        :param val: (bool) default is true, but if set to false, the controls will be disabled.
-        """
-        self.slider_gain.Enable(val)
-        self.slider_offset.Enable(val)
-        self.spinctrl_gain.Enable(val)
-        self.spinctrl_offset.Enable(val)
-
-    def enable_power_controls(self, val=True):
-        """
-        Enable (or disable if val=False) power controls
-        :param val: (bool) default is true, but if set to false, the controls will be disabled.
-        """
-        self.ctl_hv.Enable(val)
-        if not val:
-            self.ctl_hv.SetBitmap(self.bmp_hv_disabled)
-        else:
-            self.ctl_hv.SetBitmap(self.bmp_hv_enabled)
-        self.btn_auto_bc.Enable(val)
-        self.btn_auto_bc.Enable(False)  # not implemented yet
-        self.enable_gain_offset_controls(val)
-        self.channel_ctrl.Enable(val)
-        self.spinctrl_voltage.Enable(val)
-
-    def enable_power(self, val=True):
-        self.ctl_power.Enable(val)
-        if not val:
-            self.ctl_power.SetBitmap(self.bmp_power_disabled)
-        else:
-            self.ctl_power.SetBitmap(self.bmp_power_enabled)
 
     def OnClose(self, event):
         """
@@ -436,21 +392,16 @@ class JoltApp(wx.App):
                     self.dev.set_target_mppc_temp(-10)
             else:
                 self.dev.set_target_mppc_temp(24)
-            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
-            if self._power:
-                self.enable_power_controls(True)
-            else:
-                self.enable_power_controls(False)
+        # Turn voltage off
+        self._hv = not self._hv
+        logging.info("HV: %s", self._hv)
+        self.dev.set_voltage(0)
+        self.refresh()
 
     def OnHV(self, event):
         # Toggle the HV value
-        if not self._power:
-            return
-
         self._hv = not self._hv
         logging.info("HV: %s", self._hv)
-
-        self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
 
         if self._hv:
             # write parameters to device
@@ -459,6 +410,7 @@ class JoltApp(wx.App):
             self.dev.set_offset(self._offset)
         else:
             self.dev.set_voltage(0)
+        self.refresh()
 
     def OnAutoBC(self, event):
         # Call Auto BC
@@ -510,41 +462,85 @@ class JoltApp(wx.App):
         self.refresh()
 
     @call_in_wx_main
+    def update_controls(self):
+        """
+        Enable/disable the right controls, set bitmap controls and let the user know if we are in debug mode.
+        """
+        def disable_bmp(bmp):
+            # The bitmap control should be greyed out. On linux, disabling the StaticBitmap does this
+            # automatically, however, on windows, this requires a bit more work. wx.Bitmap has a function
+            # .ConvertToDisabled(), but the resulting bitmap is almost transparent and can hardly be seen.
+            # Therefore we have to go the long way around and first convert the bitmap to an image, which
+            # can be converted to greyscale and then convert it back to a bitmap.
+            return bmp.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
+
+        pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
+        if self._debug_mode or self._power:
+            # enable all
+            self.ctl_power.Enable(True)
+            self.ctl_hv.Enable(True)
+            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
+            self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
+            self.channel_ctrl.Enable(True)
+            self.spinctrl_voltage.Enable(True)
+            self.slider_gain.Enable(True)
+            self.slider_offset.Enable(True)
+            self.spinctrl_gain.Enable(True)
+            self.spinctrl_offset.Enable(True)
+        elif pressure_ok:
+            # enable power, disable rest
+            self.ctl_power.Enable(True)
+            self.ctl_hv.Enable(False)
+            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
+            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.channel_ctrl.Enable(False)
+            self.spinctrl_voltage.Enable(False)
+            self.slider_gain.Enable(False)
+            self.slider_offset.Enable(False)
+            self.spinctrl_gain.Enable(False)
+            self.spinctrl_offset.Enable(False)
+        else:
+            # disable all
+            self.ctl_power.Enable(False)
+            self.ctl_hv.Enable(False)
+            self.ctl_power.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.channel_ctrl.Enable(False)
+            self.spinctrl_voltage.Enable(False)
+            self.slider_gain.Enable(False)
+            self.slider_offset.Enable(False)
+            self.spinctrl_gain.Enable(False)
+            self.spinctrl_offset.Enable(False)
+
+        # Auto BC not implemented yet
+        self.btn_auto_bc.Enable(False)
+
+        # Show we are in debug mode
+        if self._debug_mode:
+            self.power_label.SetLabel("Power\tDEBUG MODE")
+            self.power_label.SetForegroundColour(wx.Colour(wx.RED))
+        else:
+            self.power_label.SetLabel("Power")
+            self.power_label.SetForegroundColour(wx.Colour(wx.BLACK))
+
+    @call_in_wx_main
     def refresh(self):
         """
         Refreshes the GUI display values
         """
-        #self.txtbox_current.SetValue("N/A")
+        # Show settings for temperature, pressure etc
         self.txtbox_current.SetValue("%.2f" % self.mpcc_current)
-        #self.check_saferange(self.txtbox_current, self.mpcc_current, driver.SAFERANGE_MPCC_CURRENT, "MPCC Current")
-
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mpcc_temp)
-        self.check_saferange(self.txtbox_MPPCTemp, self.mpcc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
-
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
-        self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
-
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
+
+        # Check ranges, create notification if necessary
+        if self._power:  # mppc temperature will always be out of range if power is off
+            self.check_saferange(self.txtbox_MPPCTemp, self.mpcc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
+        self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
-        if (not driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
-            and not self._power):  # don't allow to turn it on, but turning it off should still work
-            self.enable_power(False)
-        else:
-            self.enable_power(True)
-            
-        if self._debug_mode:
-            self.enable_power(True)
-            self.enable_power_controls(True)
-            self.power_label.SetLabel("Power-DEBUG")
-            self.power_label.SetForegroundColour(wx.Colour(wx.RED))
 
-        elif not self._debug_mode and not self._power:
-            self.enable_power_controls(False)
-
-        if not self._debug_mode:
-            self.power_label.SetLabel("Power")
-            self.power_label.SetForegroundColour(wx.Colour(wx.BLACK))
-        # check the error status
+        # Check the error status
         if self.err != 8:
             # Report error
             logging.error("Error code: %d", self.err)
@@ -558,6 +554,9 @@ class JoltApp(wx.App):
         else:
             # errors cleared
             self.error_codes.clear()
+
+        # Update controls
+        self.update_controls()
 
     def _do_poll(self):
         """
@@ -590,7 +589,7 @@ class JoltApp(wx.App):
                     logging.info("Offset: %f %%", self._offset)
                     wx.CallAfter(self._set_gui_from_val)
                     self._call_auto_bc.clear()
-                    wx.CallAfter(self.enable_gain_offset_controls)
+                    #wx.CallAfter(self.enable_gain_offset_controls)
 
                 # Wait till the next polling period
                 time.sleep(POLL_INTERVAL)

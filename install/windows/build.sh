@@ -1,1 +1,1 @@
-pyinstaller --clean -y JoltApp.spec
+pyinstaller --clean --onefile -y JoltApp.spec

@@ -393,9 +393,10 @@ class JoltApp(wx.App):
             else:
                 self.dev.set_target_mppc_temp(24)
         # Turn voltage off
-        self._hv = not self._hv
-        logging.info("HV: %s", self._hv)
-        self.dev.set_voltage(0)
+        if not self._power:
+            self._hv = False
+            logging.info("HV: %s", self._hv)
+            self.dev.set_voltage(0)
         self.refresh()
 
     def OnHV(self, event):

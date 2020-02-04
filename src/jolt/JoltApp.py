@@ -120,7 +120,7 @@ class JoltApp(wx.App):
         # Load config
         self._voltage, self._gain, self._offset = self.load_config()
         self.voltage = 0.0
-        self.mpcc_temp = 0.0
+        self.mppc_temp = 0.0
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
         self.error = 8  # 8 means no error
@@ -398,6 +398,11 @@ class JoltApp(wx.App):
             self._hv = False
             logging.info("Changed voltage state to: %s", self._hv)
             self.dev.set_voltage(0)
+        if self._power:
+            # write parameters to device
+            self.dev.set_voltage(self._voltage)
+            self.dev.set_gain(self._gain)
+            self.dev.set_offset(self._offset)
         self.refresh()
 
     def OnHV(self, event):
@@ -425,6 +430,7 @@ class JoltApp(wx.App):
     def OnVoltage(self, event):
         self._voltage = event.GetValue()
         if self._hv:
+            logging.debug("Changed voltage to %s", self._voltage)
             self.dev.set_voltage(self._voltage)
 
     def OnRadioBox(self, event):
@@ -527,7 +533,7 @@ class JoltApp(wx.App):
         Refreshes the GUI display values
         """
         # Show settings for temperature, pressure etc
-        self.txtbox_current.SetValue("%.2f" % self.voltage)
+        self.txtbox_current.SetValue("%.2f" % self.output)
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
         self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
@@ -561,20 +567,22 @@ class JoltApp(wx.App):
         try:
             while not self.should_close.is_set():
                 # Get new values from the device
-                self.voltage = self.dev.get_voltage()
+                self.output = self.dev.get_output_single_ended()
                 self.mppc_temp = self.dev.get_cold_plate_temp()
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()
                 gain = self.dev.get_gain()
+                self.voltage = self.dev.get_voltage()
                 channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
                                 driver.CHANNEL_PAN: "PAN"}
                 channel = channel_list[self.dev.get_channel()]
        
                 # Logging
                 logging.info("Gain: %.2f, offset: unknown, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
-                             "pressure: %.2f, voltage: %.2f, error state: %d", gain, channel, self.mppc_temp,
-                             self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.error)
+                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d", gain, channel,
+                             self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
+                             self.error)
 
                 # Refresh gui with these values
                 self.refresh()

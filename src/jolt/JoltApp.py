@@ -573,14 +573,15 @@ class JoltApp(wx.App):
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()
                 gain = self.dev.get_gain()
+                offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()
                 channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
                                 driver.CHANNEL_PAN: "PAN"}
                 channel = channel_list[self.dev.get_channel()]
        
                 # Logging
-                logging.info("Gain: %.2f, offset: unknown, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
-                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d", gain, channel,
+                logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
+                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d", gain, offset, channel,
                              self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
                              self.error)
 

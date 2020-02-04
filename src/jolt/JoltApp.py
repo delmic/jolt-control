@@ -120,7 +120,7 @@ class JoltApp(wx.App):
         # Load config
         self._voltage, self._gain, self._offset = self.load_config()
         self.voltage = 0.0
-        self.mpcc_temp = 0.0
+        self.mppc_temp = 0.0
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
         self.error = 8  # 8 means no error
@@ -398,6 +398,11 @@ class JoltApp(wx.App):
             self._hv = False
             logging.info("Changed voltage state to: %s", self._hv)
             self.dev.set_voltage(0)
+        if self._power:
+            # write parameters to device
+            self.dev.set_voltage(self._voltage)
+            self.dev.set_gain(self._gain)
+            self.dev.set_offset(self._offset)
         self.refresh()
 
     def OnHV(self, event):

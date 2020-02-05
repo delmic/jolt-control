@@ -78,7 +78,7 @@ else:
         logging.error("Failed to create user log directory, using default .ini file.")
         LOG_FILE = resource_path('jolt.log')
 
-POLL_INTERVAL = 2.0 # seconds
+POLL_INTERVAL = 1.0 # seconds
 
 
 class JoltApp(wx.App):

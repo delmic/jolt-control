@@ -109,8 +109,8 @@ class JoltApp(wx.App):
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
             result = dlg.ShowModal()
-            if result == wx.ID_OK:
-                sys.exit()
+            self.Destroy()
+            sys.exit()
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
 

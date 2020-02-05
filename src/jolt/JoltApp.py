@@ -392,7 +392,7 @@ class JoltApp(wx.App):
             logging.info("Changed power state to: %s", self._power)
             if self._power:
                 if self._debug_mode:
-                    self.dev.set_target_mppc_temp(10)
+                    self.dev.set_target_mppc_temp(15)
                 else:
                     self.dev.set_target_mppc_temp(-10)
             else:

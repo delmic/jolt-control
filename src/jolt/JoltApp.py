@@ -78,7 +78,7 @@ else:
         logging.error("Failed to create user log directory, using default .ini file.")
         LOG_FILE = resource_path('jolt.log')
 
-POLL_INTERVAL = 2.0 # seconds
+POLL_INTERVAL = 1.0 # seconds
 
 
 class JoltApp(wx.App):
@@ -109,8 +109,8 @@ class JoltApp(wx.App):
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
             result = dlg.ShowModal()
-            if result == wx.ID_OK:
-                sys.exit()
+            self.Destroy()
+            sys.exit()
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
 
@@ -322,6 +322,7 @@ class JoltApp(wx.App):
                     self._debug_mode = True
             passwd.Destroy()
         self.refresh()
+        event.Skip()
         
     @call_in_wx_main
     def _set_gui_from_val(self):
@@ -378,9 +379,11 @@ class JoltApp(wx.App):
 
         self.save_config() # Save config to INI
         self.dialog.Destroy()
+        event.Skip()
 
     def OnCollapseLog(self, event):
         self.dialog.Fit()
+        event.Skip()
 
     def OnPower(self, event):
         # Toggle the power value
@@ -389,7 +392,7 @@ class JoltApp(wx.App):
             logging.info("Changed power state to: %s", self._power)
             if self._power:
                 if self._debug_mode:
-                    self.dev.set_target_mppc_temp(10)
+                    self.dev.set_target_mppc_temp(15)
                 else:
                     self.dev.set_target_mppc_temp(-10)
             else:
@@ -434,38 +437,45 @@ class JoltApp(wx.App):
         if self._hv:
             logging.debug("Changed voltage to %s", self._voltage)
             self.dev.set_voltage(self._voltage)
+        event.Skip()
 
     def OnRadioBox(self, event):
         channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B, "Pan": driver.CHANNEL_PAN}
         self.dev.set_channel(channels[event.GetEventObject().GetStringSelection()])
         logging.debug("Changed channel to %s", event.GetEventObject().GetStringSelection())
+        event.Skip()
 
     def OnGainSlider(self, event):
         self._gain = event.GetPosition()
         self.spinctrl_gain.SetValue(self._gain)
         self.dev.set_gain(self._gain)
         logging.debug("Changed gain to %s", self._gain)
+        event.Skip()
 
     def OnOffsetSlider(self, event):
         self._offset = event.GetPosition()
         self.spinctrl_offset.SetValue(self._offset)
         self.dev.set_offset(self._offset)
         logging.debug("Changed offset to %s", self._offset)
+        event.Skip()
 
     def OnGainSpin(self, event):
         self._gain = event.GetValue()
         self.slider_gain.SetValue(int(self._gain))
         self.dev.set_gain(self._gain)
         logging.debug("Changed gain to %s", self._gain)
+        event.Skip()
 
     def OnOffsetSpin(self, event):
         self._offset = event.GetValue()
         self.slider_offset.SetValue(int(self._offset))
         self.dev.set_offset(self._offset)
         logging.debug("Changed offset to %s", self._offset)
+        event.Skip()
 
     def OnRefreshGUI(self, event):
         self.refresh()
+        event.Skip()
 
     @call_in_wx_main
     def update_controls(self):

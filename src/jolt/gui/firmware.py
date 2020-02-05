@@ -18,7 +18,7 @@ import wx.adv
 class MyWizard1 ( wx.adv.Wizard ):
 
 	def __init__( self, parent ):
-		wx.adv.Wizard.__init__ ( self, parent, id = wx.ID_ANY, title = wx.EmptyString, bitmap = wx.NullBitmap, pos = wx.DefaultPosition, style = wx.DEFAULT_DIALOG_STYLE )
+		wx.adv.Wizard.__init__ ( self, parent, id = wx.ID_ANY, title = u"Delmic Jolt Firmware Tool", bitmap = wx.NullBitmap, pos = wx.DefaultPosition, style = wx.DEFAULT_DIALOG_STYLE )
 
 		self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 		self.m_pages = []
@@ -32,15 +32,25 @@ class MyWizard1 ( wx.adv.Wizard ):
 
 		gSizer1 = wx.GridSizer( 1, 2, 0, 0 )
 
-		board_selectChoices = [ u"Computer Board", u"Frontend Board" ]
-		self.board_select = wx.RadioBox( self.m_wizPage1, wx.ID_ANY, u"Select Board\n", wx.DefaultPosition, wx.DefaultSize, board_selectChoices, 1, wx.RA_SPECIFY_COLS )
-		self.board_select.SetSelection( 0 )
-		gSizer1.Add( self.board_select, 0, wx.ALL, 5 )
+		self.m_staticText10 = wx.StaticText( self.m_wizPage1, wx.ID_ANY, u"Select Board", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText10.Wrap( -1 )
 
-		mode_selectChoices = [ u"Update Existing Firmware", u"Empty Board" ]
-		self.mode_select = wx.RadioBox( self.m_wizPage1, wx.ID_ANY, u"Mode", wx.DefaultPosition, wx.DefaultSize, mode_selectChoices, 1, wx.RA_SPECIFY_COLS )
-		self.mode_select.SetSelection( 0 )
-		gSizer1.Add( self.mode_select, 0, wx.ALL, 5 )
+		gSizer1.Add( self.m_staticText10, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+		m_choice1Choices = [ u"...", u"Computer Board", u"Frontend Board" ]
+		self.m_choice1 = wx.Choice( self.m_wizPage1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_choice1Choices, 0 )
+		self.m_choice1.SetSelection( 0 )
+		gSizer1.Add( self.m_choice1, 0, wx.ALL|wx.EXPAND, 5 )
+
+		self.m_staticText11 = wx.StaticText( self.m_wizPage1, wx.ID_ANY, u"Upload Mode", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText11.Wrap( -1 )
+
+		gSizer1.Add( self.m_staticText11, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+		m_choice2Choices = [ u"...", u"Update Existing Firmware", u"First Upload Empty Board" ]
+		self.m_choice2 = wx.Choice( self.m_wizPage1, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, m_choice2Choices, 0 )
+		self.m_choice2.SetSelection( 0 )
+		gSizer1.Add( self.m_choice2, 0, wx.ALL|wx.EXPAND, 5 )
 
 
 		fgSizer1.Add( gSizer1, 1, wx.EXPAND, 5 )
@@ -52,7 +62,7 @@ class MyWizard1 ( wx.adv.Wizard ):
 		self.m_staticText1 = wx.StaticText( self.m_wizPage1, wx.ID_ANY, u"Select File", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.m_staticText1.Wrap( -1 )
 
-		fgSizer2.Add( self.m_staticText1, 0, wx.ALL, 5 )
+		fgSizer2.Add( self.m_staticText1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 		self.file_select = wx.FilePickerCtrl( self.m_wizPage1, wx.ID_ANY, wx.EmptyString, u"Select a file", u"*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE )
 		self.file_select.SetMinSize( wx.Size( 300,-1 ) )
@@ -60,7 +70,7 @@ class MyWizard1 ( wx.adv.Wizard ):
 		fgSizer2.Add( self.file_select, 0, wx.ALL, 5 )
 
 
-		fgSizer1.Add( fgSizer2, 1, wx.EXPAND, 5 )
+		fgSizer1.Add( fgSizer2, 1, wx.EXPAND|wx.TOP, 30 )
 
 
 		self.m_wizPage1.SetSizer( fgSizer1 )
@@ -69,24 +79,45 @@ class MyWizard1 ( wx.adv.Wizard ):
 		self.m_wizPage2 = wx.adv.WizardPageSimple( self  )
 		self.add_page( self.m_wizPage2 )
 
-		fgSizer5 = wx.FlexGridSizer( 2, 1, 0, 0 )
+		fgSizer5 = wx.FlexGridSizer( 3, 1, 0, 0 )
 		fgSizer5.SetFlexibleDirection( wx.BOTH )
 		fgSizer5.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+		self.start_button = wx.Button( self.m_wizPage2, wx.ID_ANY, u"Upload FW", wx.DefaultPosition, wx.DefaultSize, 0 )
+		fgSizer5.Add( self.start_button, 0, wx.ALL|wx.EXPAND, 5 )
+
+		fgSizer51 = wx.FlexGridSizer( 2, 2, 0, 0 )
+		fgSizer51.SetFlexibleDirection( wx.BOTH )
+		fgSizer51.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
 		self.text_isp = wx.StaticText( self.m_wizPage2, wx.ID_ANY, u"ISP Mode", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.text_isp.Wrap( -1 )
 
-		fgSizer5.Add( self.text_isp, 0, wx.ALL, 5 )
+		fgSizer51.Add( self.text_isp, 0, wx.ALL, 5 )
+
+		self.m_staticText9 = wx.StaticText( self.m_wizPage2, wx.ID_ANY, u"...", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText9.Wrap( -1 )
+
+		fgSizer51.Add( self.m_staticText9, 0, wx.ALL, 5 )
 
 		self.text_uploading = wx.StaticText( self.m_wizPage2, wx.ID_ANY, u"Uploading FW", wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.text_uploading.Wrap( -1 )
 
-		fgSizer5.Add( self.text_uploading, 0, wx.ALL, 5 )
+		fgSizer51.Add( self.text_uploading, 0, wx.ALL, 5 )
+
+		self.m_staticText8 = wx.StaticText( self.m_wizPage2, wx.ID_ANY, u"...", wx.DefaultPosition, wx.DefaultSize, 0 )
+		self.m_staticText8.Wrap( -1 )
+
+		fgSizer51.Add( self.m_staticText8, 0, wx.ALL, 5 )
+
+
+		fgSizer5.Add( fgSizer51, 1, wx.EXPAND, 5 )
 
 		fgSizer6 = wx.FlexGridSizer( 0, 2, 0, 0 )
 		fgSizer6.SetFlexibleDirection( wx.BOTH )
 		fgSizer6.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
+		fgSizer6.SetMinSize( wx.Size( 300,200 ) )
 		self.output_box = wx.TextCtrl( self.m_wizPage2, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
 		self.output_box.SetMinSize( wx.Size( 400,200 ) )
 

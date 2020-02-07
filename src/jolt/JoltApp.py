@@ -85,7 +85,7 @@ class JoltApp(wx.App):
     """
     The Jolt Control Window App
 
-    Requries files
+    Requires files
     xrc/main.xrc
     CONFIG_FILE: an ini file for settings
 
@@ -586,7 +586,7 @@ class JoltApp(wx.App):
                 offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()
                 channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
-                                driver.CHANNEL_PAN: "PAN"}
+                                driver.CHANNEL_PAN: "PAN", driver.CHANNEL_OFF: "OFF"}
                 try:
                     channel = channel_list[self.dev.get_channel()]
                 except:

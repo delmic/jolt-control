@@ -48,10 +48,11 @@ CMD_GET_FRONTEND_FW_VER = 0x71
 CMD_GET_FRONTEND_COMPILE_DATE = 0x72
 CMD_GET_FRONTEND_COMPILE_TIME = 0x73
 CMD_GET_FRONTEND_SERIAL_NUM = 0x74
+CMD_GET_FRONTEND_VBIAS = 0x95
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_SET_TEMP = 0xb0
-CMD_SET_MPPC_CURRENT = 0xc9  # setvbias               
+CMD_SET_VBIAS = 0xc9  # setvbias               
 ERROR_CODE = chr(0x59).encode('latin1')
 CMD_SET_POWER = 0x01  # not working
 ON = chr(0xff).encode('latin1')
@@ -71,7 +72,7 @@ CMD_SET_VOLTAGE = 0xc9
 CMD_SET_OFFSET = 0xbf#0x9b  # setvosprog
 CMD_GET_GAIN = 0x88
 CMD_GET_CHANNEL = 0x90
-CMD_GET_VOLTAGE = 0x95
+CMD_GET_VOLTAGE = 0xca
 CMD_GET_OFFSET = 0xE0
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_SET_MPPC_TEMP = 0xb0
@@ -81,11 +82,13 @@ CMD_SET_SingleEndedOutput = 0xbd
 CMD_GET_ERROR = 0x9e
 
 CMD_CB_ISP = 0xfe
+CMD_FW_ISP = 0xff
 
 CHANNEL_PAN = 7
-CHANNEL_R = 2
+CHANNEL_R = 1
 CHANNEL_G = 4
-CHANNEL_B = 1
+CHANNEL_B = 2
+CHANNEL_OFF = 0
 
 SAFERANGE_MPCC_CURRENT = (-5000, 5000)
 SAFERANGE_MPCC_TEMP = (-20, 20)
@@ -312,6 +315,9 @@ class JOLT():
 
     def set_cb_isp_mode(self):
         self._send_cmd(CMD_CB_ISP, (235).to_bytes(1, 'little', signed=False))
+        
+    def set_fw_isp_mode(self):
+        self._send_cmd(CMD_FW_ISP, (235).to_bytes(1, 'little', signed=False))
 
     def call_auto_bc(self):
         raise NotImplementedError()

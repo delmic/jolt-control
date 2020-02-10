@@ -2,7 +2,6 @@
 <resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
 	<object class="wxDialog" name="MyDialog1">
 		<style>wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</style>
-		<size>396,528</size>
 		<title>Jolt Firmware Updater</title>
 		<centered>1</centered>
 		<object class="wxFlexGridSizer">

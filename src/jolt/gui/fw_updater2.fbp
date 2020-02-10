@@ -45,7 +45,7 @@
             <property name="minimum_size">-1,-1</property>
             <property name="name">MyDialog1</property>
             <property name="pos"></property>
-            <property name="size">396,528</property>
+            <property name="size">-1,-1</property>
             <property name="style">wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</property>
             <property name="subclass">; ; forward_declare</property>
             <property name="title">Jolt Firmware Updater</property>
@@ -259,7 +259,7 @@
                                 <property name="message">Select a file</property>
                                 <property name="min_size"></property>
                                 <property name="minimize_button">0</property>
-                                <property name="minimum_size">230,-1</property>
+                                <property name="minimum_size">250,-1</property>
                                 <property name="moveable">1</property>
                                 <property name="name">filePicker_cb</property>
                                 <property name="pane_border">1</property>
@@ -385,7 +385,7 @@
                                 <property name="message">Select a file</property>
                                 <property name="min_size"></property>
                                 <property name="minimize_button">0</property>
-                                <property name="minimum_size">-1,-1</property>
+                                <property name="minimum_size">250,-1</property>
                                 <property name="moveable">1</property>
                                 <property name="name">filePicker_fb</property>
                                 <property name="pane_border">1</property>

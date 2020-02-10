@@ -110,7 +110,6 @@ class JOLT():
     def __init__(self, simulated=False):
         self._ser_access = threading.Lock()
         self._serial = self._find_device(simulated=simulated)
-
         self.counter = 0
         
     def get_fe_sn(self):
@@ -377,12 +376,14 @@ class JOLT():
                 idn = self.get_fe_hw_version()
                 if not "jolt" in idn.lower():
                     raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
+                self.portname = n
                 return serial
             except:
                 logging.info("Skipping device on port %s, which didn't seem to be compatible", n)
                 # not possible to use this port? next one!
                 continue
         else:
+            self.portname = None
             raise IOError("Check that Jolt is running, and check the connection "
                           "to the PC. No JOLT found on ports %s" %
                           (ports,))

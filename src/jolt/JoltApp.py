@@ -27,7 +27,7 @@ import threading
 import configparser
 from appdirs import AppDirs
 import jolt
-from jolt.util import log
+from jolt.util import log, resource_path
 from jolt.gui import xmlh
 from jolt import driver
 from jolt.util import *
@@ -40,16 +40,6 @@ from shutil import copyfile
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)
 
 # Get app config directories
 SAVE_CONFIG = True  # whether or not to save the last values to .ini

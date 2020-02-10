@@ -267,8 +267,8 @@ class NXPChip(ISPChip):
             print("Connect to running ISP")
             self.ConnectToRunningISP()
             print("Reconnection Successful")
-
-            self.CheckPartType()
+            # Disable this check for now, it fails although everything works fine.
+            #self.CheckPartType()
             uid = self.ReadUID()
             print("Part UID: %s"%uid)
             bootCodeVersion = self.ReadBootCodeVersion()

@@ -2,6 +2,7 @@ from serial import Serial
 from collections import deque
 from timeout_decorator import timeout
 from time import sleep
+import time
 
 class ISPChip(object):
     NewLine = "\r\n"
@@ -29,9 +30,10 @@ class ISPChip(object):
         self.uart.flush()
 
     #@timeout(0.25)
-    @timeout(1)
+    #@timeout(1)
     def ReadLine(self):
-        while(not self.ReadFrame()):
+        startt = time.time()
+        while(not self.ReadFrame() and time.time() < startt + 2):
             self.Read()
         return self.GetBufferIn()
 

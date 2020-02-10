@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
 	<object class="wxDialog" name="MyDialog1">
-		<style>wxDEFAULT_DIALOG_STYLE</style>
+		<style>wxDEFAULT_DIALOG_STYLE|wxRESIZE_BORDER</style>
+		<size>396,528</size>
 		<title>Jolt Firmware Updater</title>
 		<centered>1</centered>
 		<object class="wxFlexGridSizer">
@@ -54,8 +55,8 @@
 						</object>
 					</object>
 					<object class="sizeritem">
-						<option>0</option>
-						<flag>wxALL</flag>
+						<option>2</option>
+						<flag>wxALL|wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxFilePickerCtrl" name="filePicker_cb">
 							<value></value>
@@ -75,7 +76,7 @@
 					</object>
 					<object class="sizeritem">
 						<option>0</option>
-						<flag>wxALL</flag>
+						<flag>wxALL|wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxFilePickerCtrl" name="filePicker_fb">
 							<value></value>
@@ -84,25 +85,27 @@
 							<style>wxFLP_DEFAULT_STYLE</style>
 						</object>
 					</object>
+					<object class="sizeritem">
+						<option>1</option>
+						<flag>wxEXPAND</flag>
+						<border>5</border>
+						<object class="wxBoxSizer">
+							<orient>wxVERTICAL</orient>
+						</object>
+					</object>
 				</object>
 			</object>
 			<object class="sizeritem">
 				<option>1</option>
 				<flag>wxEXPAND</flag>
 				<border>5</border>
-				<object class="wxFlexGridSizer">
-					<rows>1</rows>
-					<cols>1</cols>
-					<vgap>0</vgap>
-					<hgap>0</hgap>
-					<growablecols></growablecols>
-					<growablerows></growablerows>
+				<object class="wxBoxSizer">
+					<orient>wxVERTICAL</orient>
 					<object class="sizeritem">
 						<option>0</option>
-						<flag>wxALL</flag>
+						<flag>wxALL|wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxButton" name="upload_button">
-							<size>330,-1</size>
 							<label>Upload Firmware</label>
 							<default>0</default>
 							<markup>0</markup>
@@ -125,6 +128,7 @@
 							<style>wxTE_CHARWRAP|wxTE_MULTILINE|wxVSCROLL</style>
 							<size>-1,300</size>
 							<bg>#000000</bg>
+							<fg>#ffffff</fg>
 							<value></value>
 						</object>
 					</object>

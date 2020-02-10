@@ -66,8 +66,6 @@ class FirmwareUpdater(wx.App):
         """
         Constructor
         """
-
-
         self.file_cb = None
         self.file_fb = None
         
@@ -80,7 +78,8 @@ class FirmwareUpdater(wx.App):
             self.driver = JOLT()
             self.portname = self.driver.portname
             print("Found jolt on port %s" % self.portname)
-            print("Current firmware version %s\n" % self.driver.get_be_fw_version())
+            print("Current firmware version frontend board: %s" % self.driver.get_fe_fw_version())
+            print("Current firmware version computer board: %s\n\n" % self.driver.get_be_fw_version())
         except:
             raise
             # TODO
@@ -107,28 +106,44 @@ class FirmwareUpdater(wx.App):
         sys.stdout = redir
         sys.stderr = redir
         
+        self.upload_btn.Enable(False)
+
+        # Advanced drop down menu for resetting completely (deleting firmware)
+        
         return True
 
     def OnFileCb(self, event):
-        # TODO: check if 'computerboard' in path name, otherwise raise warning dialog
-        self.file_cb = event.GetPath()
+        path = event.GetPath()
+        if 'frontend' in path.lower() or 'front-end' in path.lower():
+            dlg = wx.MessageDialog(None, "The name of the file includes the word 'frontend'. Are you sure it's a file for the computer board? If so, please rename it and try again.", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            dlg.ShowModal()
+            self.filePicker_cb.SetPath("None")  # that's probably not the best way of doing it, but it works (with any text that's not a proper file, but not with "")
+        else:
+            self.file_cb = event.GetPath()
+            self.upload_btn.Enable(True)
         
     def OnFileFb(self, event):
-        # TODO: check if 'computerboard' in path name, otherwise raise warning dialog
-        self.file_fb = event.GetPath()
+        path = event.GetPath()
+        if 'frontend' not in path.lower():
+            dlg = wx.MessageDialog(None, "The name of the file does not include the word 'frontend'. Are you sure it's a file for the frontend board? If so, please rename it and try again.", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+            dlg.ShowModal()
+            self.filePicker_fb.SetPath("None")  # that's probably not the best way of doing it, but it works (with any text that's not a proper file, but not with "")
+        else:
+            self.file_fb = event.GetPath()
+            self.upload_btn.Enable(True)
 
     def OnUploadBtn(self, event):
         if not self.file_cb and not self.file_fb:
             # error dialog
-            raise ValueError('no file selected')
+            raise ValueError('No file selected.')
         
-        thread = threading.Thread(target=self.upload_cb_firmware)
+        thread = threading.Thread(target=self.upload_firmware)
         thread.start()
 
-    def upload_cb_firmware(self):
+    def upload_firmware(self):
         if self.file_cb:
             try:
-                print("Entering ISP mode...")
+                print("Entering Computer Board ISP mode...")
                 self.driver.set_cb_isp_mode()
             except:
                 exc_type, exc_value, exc_tb = sys.exc_info()
@@ -149,7 +164,32 @@ class FirmwareUpdater(wx.App):
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)
             else:
-                pass  # TODO    
+                pass  # TODO
+        
+        if self.file_fb:
+            try:
+                print("Entering Frontend ISP mode...")
+                self.driver.set_fb_isp_mode()
+            except:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_tb)
+                return
+            time.sleep(2)
+            max_trials = 5
+            ser = self.driver._serial
+            for i in range(max_trials):
+                print("\n\nNXPISP Upload: Trial %d" % i)
+                print("Setting up chip...")
+                try:
+                    chip = SetupChip('LPC845', self.portname)
+                    print('Writing image...')
+                    chip.WriteImage(self.file_fb)
+                    break
+                except Exception as ex:
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    traceback.print_exception(exc_type, exc_value, exc_tb)
+            else:
+                pass  # TODO   
 
     def OnClose(self, event):
         self.driver._serial.close()

@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+from ISPProgrammer import LPC80x, LPC84x, LPC175_6x
+import click
+
+INSTALLED_FAMILIES = (
+    LPC80x, 
+    LPC84x,
+    LPC175_6x
+)
+BAUDRATES = (
+    9600,
+    19200,
+    38400,
+    57600,
+    115200,
+    230400,
+    460800
+)
+DEFAULT_BAUD = BAUDRATES[3]# breaks with 115200
+
+CHIPS = []
+for family in INSTALLED_FAMILIES:
+    CHIPS.extend(family.Family)
+
+@click.group()
+def gr1():
+    pass
+
+
+def SetupChip(chipname, device = "/dev/ttyUSB0"):
+    chip = None
+    for ChipFamily in INSTALLED_FAMILIES:
+        if chipname in ChipFamily.Family:
+            chip = ChipFamily(device, baudrate = ChipFamily.MAXBAUDRATE) 
+            break
+    
+    if(chip is None):
+        raise UserWarning("Chip %s unknown"%chipname)
+
+    chip.InitConnection()
+    print("Initiated %s"%chipname)
+    chip.ChangeBaudRate(chip.MAXBAUDRATE)
+    print("Setup chip Baudrate set to:", chip.MAXBAUDRATE)
+
+    return chip
+
+@click.option('--device', '-d', type = str, default = "/dev/ttyUSB0", help='Serial Device, defaults to /dev/ttyUSB0')
+@click.option('--chipname', '-c', type = click.Choice(CHIPS), required = True, help='Chip Type')
+@gr1.command()
+def QueryChip(device, chipname):
+    chip = SetupChip(chipname, device)
+
+@click.option('--device', '-d', type = str, default = "/dev/ttyUSB0", help='Serial Device, defaults to /dev/ttyUSB0')
+@click.option('--chipname', '-c', type = click.Choice(CHIPS), required = True, help='Chip Type')
+@gr1.command()
+def MassErase(device, chipname):
+    chip = SetupChip(chipname, device)
+    chip.MassErase()
+    print("Mass Erase Successful")
+
+@click.option('--device', '-d', type = str, default = "/dev/ttyUSB0", help='Serial Device, defaults to /dev/ttyUSB0')
+@click.option('--chipname', '-c', type = click.Choice(CHIPS), required = True, help='Chip Type')
+@click.option('--imagein', type = str, required = True, help='Location of hex file to program')
+@gr1.command()
+def WriteImage(device, chipname, imagein):
+    chip = SetupChip(chipname, device)
+    chip.WriteImage(imagein)
+
+@click.option('--device', '-d', type = str, default = "/dev/ttyUSB0", help='Serial Device, defaults to /dev/ttyUSB0')
+@click.option('--chipname', '-c', type = click.Choice(CHIPS), required = True, help='Chip Type')
+@click.option('--imageout', type = str, required = True, help='Name of hex file output')
+@gr1.command()
+def ReadImage(device, chipname, imageout):
+    chip = SetupChip(chipname, device)
+    chip.ReadImage(imageout)
+
+if __name__ == "__main__":
+    gr1()

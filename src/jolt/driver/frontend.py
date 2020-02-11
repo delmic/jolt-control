@@ -280,7 +280,7 @@ class JOLT():
         """
         """
         b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 5e6
-        return int.from_bytes(b, 'little', signed=True) #* 1e-6
+        return int.from_bytes(b, 'little', signed=True) / 4095 * 100
     
     def get_vacuum_pressure(self):
         """
@@ -315,7 +315,7 @@ class JOLT():
     def set_cb_isp_mode(self):
         self._send_cmd(CMD_CB_ISP, (235).to_bytes(1, 'little', signed=False))
         
-    def set_fw_isp_mode(self):
+    def set_fb_isp_mode(self):
         self._send_cmd(CMD_FW_ISP, (235).to_bytes(1, 'little', signed=False))
 
     def call_auto_bc(self):

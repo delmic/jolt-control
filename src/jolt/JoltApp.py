@@ -267,6 +267,7 @@ class JoltApp(wx.App):
 
         # Channel select
         self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
+        self.channel_ctrl.SetSelection(0)
         self.dialog.Bind(wx.EVT_RADIOBOX, self.OnRadioBox, id=xrc.XRCID('radio_channel'))
 
         # Live displays
@@ -536,8 +537,11 @@ class JoltApp(wx.App):
         self.txtbox_current.SetValue("%.2f" % self.output)
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
-        self.txtbox_vacuumPressure.SetValue("%.1f" %  self.vacuum_pressure)
-
+        pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
+        if pressure_ok:
+            self.txtbox_vacuumPressure.SetValue("OK")
+        else:
+            self.txtbox_vacuumPressure.SetValue("NOT OK")
         # Check ranges, create notification if necessary
         if self._power:  # mppc temperature will always be out of range if power is off
             self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")

@@ -76,6 +76,7 @@ CMD_GET_VOLTAGE = 0xca
 CMD_GET_OFFSET = 0xE0
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_SET_MPPC_TEMP = 0xb0
+CMD_GET_ITEC = 0xcd
 
 CMD_SET_DifferentialOutput = 0xba
 CMD_SET_SingleEndedOutput = 0xbd
@@ -83,6 +84,7 @@ CMD_GET_ERROR = 0x9e
 
 CMD_CB_ISP = 0xfe
 CMD_FW_ISP = 0xff
+CMD_PASSTHROUGH_MODE = 0x65
 
 CHANNEL_PAN = 7
 CHANNEL_R = 1
@@ -308,6 +310,10 @@ class JOLT():
         b = val.to_bytes(1, 'little', signed=True)
         self._send_cmd(CMD_SET_CHANNEL, b)
 
+    def get_itec(self):
+        b = self._send_query(CMD_GET_ITEC)  # 1 byte
+        return int.from_bytes(b, 'little', signed=True)
+
     def get_error_status(self):
         b = self._send_query(CMD_GET_ERROR)  # 1 byte
         return int.from_bytes(b, 'little', signed=True)
@@ -317,6 +323,9 @@ class JOLT():
         
     def set_fb_isp_mode(self):
         self._send_cmd(CMD_FW_ISP, (235).to_bytes(1, 'little', signed=False))
+
+    def set_passthrough_mode(self):
+        self._send_cmd(CMD_PASSTHROUGH_MODE, (255).to_bytes(1, 'little', signed=False))
 
     def call_auto_bc(self):
         raise NotImplementedError()
@@ -373,7 +382,7 @@ class JOLT():
             try:
                 serial = self._openSerialPort(n, baudrate)
                 self._serial = serial
-                idn = self.get_fe_hw_version()
+                idn = self.get_be_hw_version()
                 if not "jolt" in idn.lower():
                     raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
                 self.portname = n

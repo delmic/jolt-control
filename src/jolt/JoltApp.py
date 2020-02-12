@@ -62,6 +62,7 @@ if os.path.isdir(dirs.user_log_dir):
 else:
     # Create directory if it doesn't exist
     try:
+        # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
         os.makedirs(dirs.user_log_dir)
         LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
     except:
@@ -576,6 +577,7 @@ class JoltApp(wx.App):
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()
+                itec = self.dev.get_itec()
                 gain = self.dev.get_gain()
                 offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()
@@ -588,9 +590,9 @@ class JoltApp(wx.App):
                     channel = self.dev.get_channel()
                 # Logging
                 logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
-                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d", gain, offset, channel,
+                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", gain, offset, channel,
                              self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
-                             self.error)
+                             self.error, itec)
 
                 # Refresh gui with these values
                 self.refresh()

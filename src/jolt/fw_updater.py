@@ -42,7 +42,8 @@ from jolt.driver import JOLT
 from jolt.gui.firmware import MyWizard1
 from jolt.JoltApp import JoltApp
 from NXPISP.bin import SetupChip
-import serial
+from serial import Serial
+import serial.tools.list_ports
 import glob
 
 COMPUTER_BOARD = 0
@@ -163,7 +164,6 @@ class FirmwareUpdater(wx.App):
         if self.compboard_isempty:
             while True:
                 if os.name == "nt":
-                    import serial.tools.list_ports
                     ports = list(serial.tools.list_ports.comports())
                     for p in ports:
                         print(p)
@@ -176,7 +176,7 @@ class FirmwareUpdater(wx.App):
                     continue
                 else:
                     self.portname = ports[0]
-                    self.serial = serial.Serial(ports[0], baudrate=9600, xonxoff=False)
+                    self.serial = Serial(ports[0], baudrate=9600, xonxoff=False)
                     break
 
         if self.file_cb:
@@ -204,7 +204,7 @@ class FirmwareUpdater(wx.App):
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)
                     self.serial.close()
-                    self.serial = serial.Serial(self.portname, baudrate=9600, xonxoff=False)
+                    self.serial = Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
                 self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
                 return
@@ -247,7 +247,7 @@ class FirmwareUpdater(wx.App):
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)
                     self.serial.close()
-                    self.serial = serial.Serial(self.portname, baudrate=9600, xonxoff=False)
+                    self.serial = Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
                 self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
                 return

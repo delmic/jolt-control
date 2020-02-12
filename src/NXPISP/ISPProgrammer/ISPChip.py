@@ -7,6 +7,7 @@ import time
 class ISPChip(object):
     NewLine = "\r\n"
     def __init__(self, serial, baudrate = 9600): #port = "/dev/ttyUSB0",
+        serial.baudrate = baudrate
         self.uart = serial  #Serial(port, baudrate, xonxoff = False)
         self.frame = []
         self.DataBufferIn = deque()

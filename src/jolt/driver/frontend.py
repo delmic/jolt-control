@@ -412,7 +412,7 @@ class JOLT():
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending command %s", msg)
+            #logging.debug("Sending command %s", msg)
             self._serial.write(msg)
         
             # Parse status
@@ -424,7 +424,7 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            logging.debug("Received status message %s" % stat)
+            #logging.debug("Received status message %s" % stat)
 
     def _send_query(self, cmd, arg=b""):
         """
@@ -440,7 +440,7 @@ class JOLT():
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending query %s", msg)
+            #logging.debug("Sending query %s", msg)
             self._serial.write(msg)
 
             # Parse status
@@ -452,7 +452,7 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            logging.debug("Received status %s" % stat)
+            #logging.debug("Received status %s" % stat)
 
             # Read response
             resp = b''
@@ -470,7 +470,7 @@ class JOLT():
                 resp += self._serial.read(l)  # message
                 resp += self._serial.read(1)  # EOT
                 ret = resp[4:-1]
-            logging.debug("Received response %s" % resp)
+            #logging.debug("Received response %s" % resp)
             return ret
         
     def terminate(self):

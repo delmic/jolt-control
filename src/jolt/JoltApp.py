@@ -114,13 +114,14 @@ class JoltApp(wx.App):
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
         self.error = 8  # 8 means no error
+        self._target_temp = 24
+        self._attrs_to_watch = {}
 
         # settings
         self._power = False
         self._hv = False
         self._call_auto_bc = threading.Event()
         self._debug_mode = False
-        self.powering = False
 
         # set of warnings currently active
         self.warnings = set()
@@ -324,7 +325,7 @@ class JoltApp(wx.App):
         self.spinctrl_gain.SetValue(self._gain)
         self.spinctrl_offset.SetValue(self._offset)
 
-    def check_saferange(self, textctrl, val, srange, name):
+    def check_saferange(self, textctrl, val, srange, name, t=None):
         """
         Turn a TextCtrl text red if the val is not in the range
         Display an error message if the value is out of the range.
@@ -332,13 +333,17 @@ class JoltApp(wx.App):
         :param val: (float) a value
         :param srange: (float tuple) safe range
         :param name: (str) the name of the parameter used in the error message
+        :param t (float or None) current time. If specified, the function will only give an error
+        if the value persists to be out of range after one minute.
         """
         if srange[0] <= val <= srange[1]:
             textctrl.SetForegroundColour(wx.BLACK)
             if name in self.warnings:
                 self.warnings.remove(name)  # clear the warning if the error goes away
+            if name in self._attrs_to_watch:
+                del self._attrs_to_watch[name]
         else:
-            if not self.powering:
+            if not t:
                 textctrl.SetForegroundColour(wx.RED)
                 # this way, the warning message is only displayed when the warning first occurs
                 if name not in self.warnings:
@@ -351,6 +356,23 @@ class JoltApp(wx.App):
                     self.toggle_power()
                 logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
                                 name, val, srange[0], srange[1])
+            elif name not in self._attrs_to_watch:
+                # don't complain yet, but take notice
+                self._attrs_to_watch[name] = t
+            elif time.time() >= self._attrs_to_watch[name]:
+                textctrl.SetForegroundColour(wx.RED)
+                # this way, the warning message is only displayed when the warning first occurs
+                if name not in self.warnings:
+                    self.warnings.add(name)
+                    msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
+                                                     flags=wx.ICON_WARNING)
+                    msg.Show()
+                # Power off
+                if self._power and not self._debug_mode:
+                    self.toggle_power()
+                logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
+                                name, val, srange[0], srange[1])
+                del self._attrs_to_watch[name]
 
     def OnClose(self, event):
         """
@@ -381,16 +403,7 @@ class JoltApp(wx.App):
         event.Skip()
 
     def OnPower(self, event):
-        if not self._power:
-            self.powering = True
-            self.polling_thread = threading.Thread(target=self._do_powering)
-            self.polling_thread.start()
         self.toggle_power()
-
-    def _do_powering(self):
-        # it takes some time to cool, don't immediately show a warning when we just started the process
-        time.sleep(5)
-        self.powering = False
 
     def toggle_power(self):
         # Toggle the power value
@@ -399,10 +412,13 @@ class JoltApp(wx.App):
             logging.info("Changed power state to: %s", self._power)
             if self._power:
                 if self._debug_mode:
+                    self._target_temp = 15
                     self.dev.set_target_mppc_temp(15)
                 else:
+                    self._target_temp = -10
                     self.dev.set_target_mppc_temp(-10)
             else:
+                self._target_temp = 24
                 self.dev.set_target_mppc_temp(24)
         # Turn voltage off
         if not self._power:
@@ -561,8 +577,7 @@ class JoltApp(wx.App):
         else:
             self.txtbox_vacuumPressure.SetValue("vented")
         # Check ranges, create notification if necessary
-        if self._power:  # mppc temperature will always be out of range if power is off
-            self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
+        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self._target_temp - 1, self._target_temp + 1], "MPCC Temperature", time.time())
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 

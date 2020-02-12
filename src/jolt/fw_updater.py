@@ -82,6 +82,7 @@ class FirmwareUpdater(wx.App):
         try:
             self.driver = JOLT()
             self.portname = self.driver.portname
+            self.serial = self.driver._serial
             print("Found jolt on port %s" % self.portname)
             print("Current firmware version computer board: %s\n\n" % self.driver.get_be_fw_version())
             fe_version = self.driver.get_fe_fw_version()
@@ -175,6 +176,7 @@ class FirmwareUpdater(wx.App):
                     continue
                 else:
                     self.portname = ports[0]
+                    self.serial = serial.Serial(ports[0], baudrate=9600, xonxoff=False)
                     break
 
         if self.file_cb:
@@ -194,13 +196,15 @@ class FirmwareUpdater(wx.App):
                 print("\n\nNXPISP Upload: Trial %d" % i)
                 print("Setting up chip...")
                 try:
-                    chip = SetupChip('LPC845', self.portname)
+                    chip = SetupChip('LPC845', self.serial)
                     print('Writing image...')
                     chip.WriteImage(self.file_cb)
                     break
                 except Exception as ex:
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)
+                    self.serial.close()
+                    self.serial = serial.Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
                 self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
                 return
@@ -214,6 +218,7 @@ class FirmwareUpdater(wx.App):
             while not self._user_ok:
                 time.sleep(0.1)
             print("Reconnecting to driver...")
+            self.serial.close()
             self.driver = JOLT()
 
         if self.file_fb:
@@ -234,15 +239,18 @@ class FirmwareUpdater(wx.App):
                 print("\n\nNXPISP Upload: Trial %d" % i)
                 print("Setting up chip...")
                 try:
-                    chip = SetupChip('LPC845', self.portname)
+                    chip = SetupChip('LPC845', self.serial)
                     print('Writing image...')
                     chip.WriteImage(self.file_fb)
                     break
                 except Exception as ex:
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)
+                    self.serial.close()
+                    self.serial = serial.Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
-                pass  # TODO   
+                self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
+                return
             print("Frontend Board Firmware uploaded successfully.\n\n")
             fb_success = True
             

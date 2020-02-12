@@ -359,7 +359,7 @@ class JoltApp(wx.App):
             elif name not in self._attrs_to_watch:
                 # don't complain yet, but take notice
                 self._attrs_to_watch[name] = t
-            elif time.time() >= self._attrs_to_watch[name]:
+            elif time.time() >= self._attrs_to_watch[name] + 60:
                 textctrl.SetForegroundColour(wx.RED)
                 # this way, the warning message is only displayed when the warning first occurs
                 if name not in self.warnings:

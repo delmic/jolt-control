@@ -495,6 +495,7 @@ class JOLTSimulator():
         self.vacuum_pressure = int(50e3)  # µBar
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
+        self.itec = int(10e6)
 
         self._temp_thread = None
         self._stop_thread = False  # temperature thread
@@ -622,6 +623,9 @@ class JOLTSimulator():
         elif com == CMD_SET_CHANNEL:
             self._sendStatus(ACK)
             self.channel = int.from_bytes(arg, 'little', signed=True)
+        elif com == CMD_GET_ITEC:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.itec.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_ERROR:
             self._sendStatus(ACK)
             # TODO: send what?

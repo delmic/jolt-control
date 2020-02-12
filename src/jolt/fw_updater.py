@@ -220,6 +220,7 @@ class FirmwareUpdater(wx.App):
             print("Reconnecting to driver...")
             self.serial.close()
             self.driver = JOLT()
+            self.serial = self.driver._serial
 
         if self.file_fb:
             fb_success = False

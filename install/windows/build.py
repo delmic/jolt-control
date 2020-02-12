@@ -3,7 +3,6 @@ import subprocess
 import sys
 import traceback
 from builtins import input
-import jolt
 
 jolt_cmd = ["pyinstaller", "--clean", "-y", "--onefile", "JoltApp.spec"]
 fwupd_cmd = ["pyinstaller", "--clean", "-y", "--onefile", "FirmwareUpdater.spec"]

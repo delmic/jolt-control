@@ -23,7 +23,7 @@ NXPReturnCodes = {
         "INVALID_BAUD_RATE"                         : 0x11,
         "INVALID_STOP_BIT"                          : 0x12,
         "CODE_READ_PROTECTION_ENABLED"              : 0x13,
-        "Unused 1"                                  : 0x14, 
+        "Unused 1"                                  : 0x14,
         "USER_CODE_CHECKSUM"                        : 0x15,
         "Unused 2"                                  : 0x16,
         "EFRO_NO_POWER"                             : 0x17,
@@ -46,16 +46,16 @@ class NXPChip(ISPChip):
     Parity = None
     DataBits = 8
     StopBits = 1
-    SyncString = "Synchronized\r\n"
-    SyncVerified = "OK\r\n"
-    ReturnCodes = NXPReturnCodes 
+    SyncString = "Synchronized"+NewLine
+    SyncVerified = "OK"+NewLine
+    ReturnCodes = NXPReturnCodes
     CRCLocation = 0x000002fc
 
     CRCValues = {
         "NO_ISP": 0x4e697370,
-        "CRP1" : 0x12345678,       
-        "CRP2" : 0x87654321,       
-        "CRP3" : 0x43218765,       
+        "CRP1" : 0x12345678,
+        "CRP2" : 0x87654321,
+        "CRP3" : 0x43218765,
     }
 
     @classmethod
@@ -70,17 +70,16 @@ class NXPChip(ISPChip):
         '''
         Get a return code with no response
         '''
-        self.Wait()
-        resp = self.ReadLine().strip().split('\n')
-        assert(len(resp) == 1)
-        try:
-            code = int(resp[0])
-        except ValueError:
-            print("Response:", resp)
-            raise
-        if(code != self.ReturnCodes["CMD_SUCCESS"]):
-            print(resp)
-            raise UserWarning("Return Code Failure in {} {}".format(CallLoc, self.GetErrorCodeName(code)))
+        for i in range(10):
+            self.Wait()
+            try:
+                resp = self.ReadLine().strip()
+                code = int(resp)
+                if(code != self.ReturnCodes["CMD_SUCCESS"]):
+                    raise UserWarning("Return Code Failure in {} {} {}".format(CallLoc, self.GetErrorCodeName(code), code))
+                return
+            except ValueError:
+                pass
 
     def Write(self, string):
         if type(string) != bytes:
@@ -110,14 +109,23 @@ class NXPChip(ISPChip):
         '''
         ISP echos host when enabled
         '''
-        self.Write("A %d"%(on))
-        self.GetReturnCode("Set Echo")
+        if on:
+            self.Write("A 1")
+        else:
+            self.Write("A 0")
+        try:
+            self.GetReturnCode("Set Echo")
+        except UserWarning as e:
+            try:
+                self.GetReturnCode("Set Echo")
+            except TimeoutError:
+                raise e
 
     def WriteToRam(self, StartLoc, Data):
         WordSize = 4
         assert(len(Data)%WordSize == 0)
         assert(StartLoc+len(Data) < self.RAMRange[1] and StartLoc >= self.RAMRange[0])
-        
+
         print("Write to RAM %d bytes"%len(Data))
         i = 0
         #while i < len(Data):
@@ -125,12 +133,12 @@ class NXPChip(ISPChip):
         #    self.GetReturnCode("Write to RAM")#get confirmation
         #    self.Write(Data[i:i+WordSize])#Stream data after confirmation
         #    i+=WordSize
-        
+
         self.Write("W %d %d"%(StartLoc, len(Data)))
         self.GetReturnCode("Write to RAM")#get confirmation
         self.Write(Data)#Stream data after confirmation
 
-        self.Write("\r\n")
+        self.Write(self.NewLine)
         self.Read()
         self.ClearBuffer()
 
@@ -139,7 +147,7 @@ class NXPChip(ISPChip):
         #assert(StartLoc+NumBytes < self.RAMRange[1] and StartLoc >= self.RAMRange[0])
         WordSize = 4
         print("ReadMemory")
-        
+
         i = 0
         out = []
         self.Flush()
@@ -153,7 +161,7 @@ class NXPChip(ISPChip):
             self.Read()
         #self.Wait()
         self.GetReturnCode("Read Memory")
-        
+
         data = []
         while(len(self.DataBufferIn)):
             ch = self.DataBufferIn.popleft()
@@ -185,7 +193,12 @@ class NXPChip(ISPChip):
         if ThumbMode:
             mode = 'T'
         self.Write("G %d %s"%(Address, mode))
-        self.GetReturnCode("Go")
+        while(True):
+            try:
+                self.GetReturnCode("Go")
+            except TimeoutError:
+                pass
+            break
 
     def EraseSector(self, StartSector, EndSector):
         self.Write("E %d %d"%(StartSector, EndSector))
@@ -237,7 +250,7 @@ class NXPChip(ISPChip):
         UID1 = self.ReadLine().strip()
         UID2 = self.ReadLine().strip()
         UID3 = self.ReadLine().strip()
-        return " ".join(["0x%08x"%int(uid) for uid in [UID0, UID1, UID2, UID3]]) 
+        return " ".join(["0x%08x"%int(uid) for uid in [UID0, UID1, UID2, UID3]])
 
     def ReadCRC(self, Address, NumBytes):
         self.ClearBuffer()
@@ -257,80 +270,116 @@ class NXPChip(ISPChip):
         self.Write("O")
         self.GetReturnCode("Read Write FAIM")
 
+    def ResetSerialConnection(self):
+        self.Flush()
+        self.Write(self.NewLine)
+        try:
+            pass
+            self.ReadLine()
+        except TimeoutError:
+            pass
+
     def InitConnection(self):
+        #self.ResetSerialConnection()
         try:
             try:
                 self.SyncConnection()
+                self.SetCrystalFrequency(self.CrystalFrequency)
             except (UserWarning, TimeoutError) as w:
                 print("Sync Failed", w)
+                print("Connect to running ISP")
+                self.ConnectToRunningISP()
+                print("Reconnection Successful")
 
-            print("Connect to running ISP")
-            self.ConnectToRunningISP()
-            print("Reconnection Successful")
-            # Disable this check for now, it fails although everything works fine.
-            #self.CheckPartType()
+            self.CheckPartType()
             uid = self.ReadUID()
             print("Part UID: %s"%uid)
             bootCodeVersion = self.ReadBootCodeVersion()
             print("Boot Code Version: %s"%bootCodeVersion)
             self.SetBaudRate(self.BaudRate)
-            print("Buadrate set to %d"%self.BaudRate)
+            print("Baudrate set to %d"%self.BaudRate)
             #flashSig = self.ReadFlashSig(self.FlashRange[0], self.FlashRange[1])
             #print("Flash Signiture: %s"%flashSig)
         except Exception as e:
             print(e, type(e))
             raise
-        
-    def SyncConnection(self):
-        self.Write("?")
-        FrameIn = self.ReadLine()
 
-        if(FrameIn.strip() != self.SyncString.strip()):
+    def SyncConnection(self):
+        synced = False
+        self.ClearSerialConnection()
+        self.Flush()
+        for i in range(5):
+            self.Write('?'*15)
+            #self.Write('?' + self.NewLine)
+            try:
+                FrameIn = self.ReadLine()
+                if(self.SyncString.strip() in FrameIn.strip()):
+                    synced = True
+                    break
+            except TimeoutError:
+                pass
+
+        if(not synced):
             #Check for SyncString
             raise UserWarning("Syncronization Failure")
 
-        self.Flush()
+        #self.Flush()
         self.Write(self.SyncString)#echo SyncString
-        FrameIn = self.ReadLine()#discard echo
-        self.ClearBuffer()
-        self.Flush()
-
-        self.Write("%d"%self.CrystalFrequency)
-        FrameIn = self.ReadLine()#Should be OK\r\n
-        if(FrameIn.strip() != self.SyncVerified.strip()):
-            raise UserWarning("Syncronization Verification Failure")
-
-        self.Echo(False)
         try:
-            self.Echo(False)
-        except ValueError:
-            pass
-        print("Syncronization Successful")
-
-    def ConnectToRunningISP(self):
-        self.Wait()
-        self.Flush()
-        self.ClearBuffer()
-        try:
-            self.ReadLine()
+            FrameIn = self.ReadLine()#discard echo
         except TimeoutError:
             pass
-        try:
-            self.Write(self.NewLine)
-            self.Read()
-            self.ClearBuffer()
-            self.Echo(False)
-        except ValueError:
-            self.Flush()
-            self.Read()
-            self.ClearBuffer()
+
+        verified = False
+        for i in range(3):
+            try:
+                FrameIn = self.ReadLine()#Should be OK\r\n
+                if(self.SyncVerified.strip() in FrameIn):
+                    verified = True
+                    break
+            except TimeoutError:
+                pass
+        if not verified:
+            raise UserWarning("Verification Failure")
+        print("Syncronization Successful")
+
+    def ClearSerialConnection(self):
+        self.Write("")
+        self.ClearBuffer()
+        self.Flush()
+        self.Read()
+        self.ClearBuffer()
+        self.Flush()
+        for i in range(2):
+            try:
+                self.ReadLine()
+            except TimeoutError:
+                pass
+
+    def SetCrystalFrequency(self, frequency_khz):
+        self.Write("%d"%frequency_khz)
+        verified = False
+        for i in range(3):
+            try:
+                FrameIn = self.ReadLine()#Should be OK\r\n
+                if(self.SyncVerified.strip() in FrameIn):
+                    verified = True
+                    break
+            except TimeoutError:
+                pass
+        if not verified:
+            raise UserWarning("Verification Failure")
+
+    def ConnectToRunningISP(self):
+        self.ClearSerialConnection()
+        self.Echo(False)
 
     def CheckPartType(self):
         PartID = self.ReadPartID()
         if(PartID not in self.PartIDs):
             raise UserWarning("%s recieved 0x%08x"%(self.ChipName, PartID))
-        
         print("Part Check Successful, 0x%08x"%(PartID))
+
     def CheckFlashWrite(Data, FlashAddress):
         '''
         Read Memory and compare it to what was written
@@ -384,7 +433,7 @@ class NXPChip(ISPChip):
 
         SectorBytes = self.SectorSizePages*self.PageSizeBytes
         assert(SectorBytes%4 == 0)
-        
+
         with open(ImageFile, 'rb') as f:
             prog = f.read()
             print("Program Length: ", len(prog))
@@ -412,7 +461,7 @@ class NXPChip(ISPChip):
         writeCount = 0
         SectorBytes = self.SectorSizePages*self.PageSizeBytes
         assert(SectorBytes%4 == 0)
-        
+
         with open(ImageFile, 'wb') as f:
             for sector in range(self.SectorCount):
                 print("Sector ", sector)
@@ -420,7 +469,7 @@ class NXPChip(ISPChip):
                     self.BlankCheckSectors(sector, sector)
                 except UserWarning:
                     break
-                
+
                 DataChunk = self.ReadMemory(sector, SectorBytes)
                 f.write(DataChunk)
 

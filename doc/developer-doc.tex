@@ -1,0 +1,33 @@
+\documentclass[]{article}
+
+%opening
+\title{Jolt Developer Manual}
+\author{Philip Winkler}
+
+\begin{document}
+
+\maketitle
+
+\section{Improving the GUI}
+The GUI uses wxpython with xrc files and the layout was designed with wxFormBuilder3.9 (todo: check version number) on Windows 10. It does not run on ubuntu. It is recommended not to directly change the xrc files, but only the fbp files from the wxFormBuilder GUI.
+
+\section{Building Windows Executables}
+The source code can be packaged into an .exe file with \texttt{pyinstaller}. This needs to be done on a computer with the operating system that the executable should eventually be executed in. Currently we support Windows 10 and Windows 7, so this process has to be repeated twice. The installation can be performed in a virtual machine. 
+These are the steps:
+\begin{enumerate}
+	\item Install the Windows operating system in a virtual machine.
+	\item Install Python 3 (e.g. 3.8, some older versions might also work)
+	\item Install pip
+	\item Use pip to install the following packages: pyinstaller, wxpython, appdirs, decorator, serial, pyserial
+	\item Open a terminal and navigate to the \texttt{jolt-engineering/install/windows} directory
+	\item type \texttt{pyinstaller --clean --onefile -y JoltApp.spec}
+	\item The executable can be found in the \texttt{dist} folder.
+\end{enumerate}
+Some tricks for tuning the virtualbox settings:
+\begin{itemize}
+	\item todo
+\end{itemize}
+TODO: run it from source
+
+
+\end{document}

@@ -373,7 +373,7 @@ class JOLT():
             try:
                 serial = self._openSerialPort(n, baudrate)
                 self._serial = serial
-                idn = self.get_fe_hw_version()
+                idn = self.get_be_hw_version()
                 if not "jolt" in idn.lower():
                     raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
                 self.portname = n

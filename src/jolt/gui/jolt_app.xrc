@@ -31,7 +31,7 @@
 								<flag>wxALL</flag>
 								<border>5</border>
 								<object class="wxStaticBitmap" name="ctl_power">
-									<bitmap>img/icons8-toggle-off-32.png</bitmap>
+									<bitmap>img/icon_toggle_off.png</bitmap>
 								</object>
 							</object>
 							<object class="sizeritem">
@@ -87,7 +87,7 @@
 						<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
 						<border>5</border>
 						<object class="wxStaticBitmap" name="ctl_hv">
-							<bitmap>img/icons8-toggle-off-32.png</bitmap>
+							<bitmap>img/icon_toggle_off.png</bitmap>
 						</object>
 					</object>
 					<object class="sizeritem">

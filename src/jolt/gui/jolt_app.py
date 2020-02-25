@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 '''
 Created on 30 September 2019
-@author: Anders Muskens
-Copyright © 2019 Anders Muskens, Delmic
+@author: Anders Muskens, Philip Winkler
+Copyright © 2019 Anders Muskens, Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,25 +17,23 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
+from appdirs import AppDirs
+import configparser
+from jolt import driver
+import jolt
+from jolt.gui import xmlh
+from jolt.util import log, resource_path, call_in_wx_main
+import logging
 import os
+from shutil import copyfile
+import sys
+import threading
 import time
+import traceback
+import warnings
+from wx import xrc
 import wx
 import wx.adv
-from wx import xrc
-import logging
-import threading
-import configparser
-from appdirs import AppDirs
-import jolt
-from jolt.util import log, resource_path
-from jolt.gui import xmlh
-from jolt import driver
-from jolt.util import *
-from jolt.gui import call_in_wx_main
-import sys
-import warnings
-import traceback
-from shutil import copyfile
 
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
@@ -91,7 +89,7 @@ class JoltApp(wx.App):
         :param simulated: True if the Jolt driver should be a simulator
         """
         try:
-            self.dev = driver.JOLT(simulated)
+            self.dev = driver.JOLTComputerBoard(simulated)
             self._startup_error = False
         except IOError as ex:
             self._startup_error = True
@@ -99,7 +97,7 @@ class JoltApp(wx.App):
             dlg = wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
-            return 0
+            return None
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
 
@@ -114,6 +112,8 @@ class JoltApp(wx.App):
         self.heat_sink_temp = 0.0
         self.vacuum_pressure = 0.0
         self.error = 8  # 8 means no error
+        self._target_temp = 24
+        self._attrs_to_watch = {}
 
         # settings
         self._power = False
@@ -190,9 +190,9 @@ class JoltApp(wx.App):
         self._init_dialog()
 
         # load bitmaps
-        self.bmp_off = wx.Bitmap(resource_path("gui/img/icons8-toggle-off-32.png"))
-        self.bmp_on = wx.Bitmap(resource_path("gui/img/icons8-toggle-on-32.png"))
-        self.bmp_icon = wx.Bitmap(resource_path("gui/img/jolt-icon.png"))
+        self.bmp_off = wx.Bitmap(resource_path("img/icon_toggle_off.png"))
+        self.bmp_on = wx.Bitmap(resource_path("img/icon_toggle_on.png"))
+        self.bmp_icon = wx.Bitmap(resource_path("img/icon_jolt.png"))
 
         # set icon
         icon = wx.Icon()
@@ -204,7 +204,6 @@ class JoltApp(wx.App):
         self._set_gui_from_val()
         self.refresh()
 
-        #self.taskbar = taskbar.JoltTaskBarIcon(self.dialog)
         return True
 
     def _init_dialog(self):
@@ -213,7 +212,7 @@ class JoltApp(wx.App):
         """
 
         # XRC Loading
-        self.res = xrc.XmlResource(resource_path('gui/main.xrc'))
+        self.res = xrc.XmlResource(resource_path('jolt_app.xrc'))
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')
@@ -286,7 +285,7 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
         
         # Debugging: allow shortcut to enable all controls
-        f5_id = wx.NewId()
+        f5_id = 1#wx.NewIdRef()
         self.dialog.Bind(wx.EVT_MENU, self._on_key, id=f5_id)
         accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id)])
         self.dialog.SetAcceleratorTable(accel_tbl)
@@ -323,7 +322,7 @@ class JoltApp(wx.App):
         self.spinctrl_gain.SetValue(self._gain)
         self.spinctrl_offset.SetValue(self._offset)
 
-    def check_saferange(self, textctrl, val, srange, name):
+    def check_saferange(self, textctrl, val, srange, name, t=None):
         """
         Turn a TextCtrl text red if the val is not in the range
         Display an error message if the value is out of the range.
@@ -331,21 +330,46 @@ class JoltApp(wx.App):
         :param val: (float) a value
         :param srange: (float tuple) safe range
         :param name: (str) the name of the parameter used in the error message
+        :param t (float or None) current time. If specified, the function will only give an error
+        if the value persists to be out of range after one minute.
         """
         if srange[0] <= val <= srange[1]:
             textctrl.SetForegroundColour(wx.BLACK)
             if name in self.warnings:
                 self.warnings.remove(name)  # clear the warning if the error goes away
+            if name in self._attrs_to_watch:
+                del self._attrs_to_watch[name]
         else:
-            textctrl.SetForegroundColour(wx.RED)
-            # this way, the warning message is only displayed when the warning first occurs
-            if name not in self.warnings:
-                self.warnings.add(name)
-                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
-                                                 flags=wx.ICON_WARNING)
-                msg.Show()
-            logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
-                            name, val, srange[0], srange[1])
+            if not t:
+                textctrl.SetForegroundColour(wx.RED)
+                # this way, the warning message is only displayed when the warning first occurs
+                if name not in self.warnings:
+                    self.warnings.add(name)
+                    msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
+                                                     flags=wx.ICON_WARNING)
+                    msg.Show()
+                # Power off
+                if self._power and not self._debug_mode:
+                    self.toggle_power()
+                logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
+                                name, val, srange[0], srange[1])
+            elif name not in self._attrs_to_watch:
+                # don't complain yet, but take notice
+                self._attrs_to_watch[name] = t
+            elif time.time() >= self._attrs_to_watch[name] + 60:
+                textctrl.SetForegroundColour(wx.RED)
+                # this way, the warning message is only displayed when the warning first occurs
+                if name not in self.warnings:
+                    self.warnings.add(name)
+                    msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
+                                                     flags=wx.ICON_WARNING)
+                    msg.Show()
+                # Power off
+                if self._power and not self._debug_mode:
+                    self.toggle_power()
+                logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
+                                name, val, srange[0], srange[1])
+                del self._attrs_to_watch[name]
 
     def OnClose(self, event):
         """
@@ -376,16 +400,22 @@ class JoltApp(wx.App):
         event.Skip()
 
     def OnPower(self, event):
+        self.toggle_power()
+
+    def toggle_power(self):
         # Toggle the power value
         if self.ctl_power.IsEnabled():
             self._power = not self._power
             logging.info("Changed power state to: %s", self._power)
             if self._power:
                 if self._debug_mode:
+                    self._target_temp = 15
                     self.dev.set_target_mppc_temp(15)
                 else:
+                    self._target_temp = -10
                     self.dev.set_target_mppc_temp(-10)
             else:
+                self._target_temp = 24
                 self.dev.set_target_mppc_temp(24)
         # Turn voltage off
         if not self._power:
@@ -540,14 +570,22 @@ class JoltApp(wx.App):
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
         pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
         if pressure_ok:
-            self.txtbox_vacuumPressure.SetValue("OK")
+            self.txtbox_vacuumPressure.SetValue("vacuum")
         else:
-            self.txtbox_vacuumPressure.SetValue("NOT OK")
+            self.txtbox_vacuumPressure.SetValue("vented")
         # Check ranges, create notification if necessary
-        if self._power:  # mppc temperature will always be out of range if power is off
-            self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, driver.SAFERANGE_MPCC_TEMP, "MPCC Temperature")
+        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self._target_temp - 1, self._target_temp + 1], "MPCC Temperature", time.time())
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
+
+        ch2sel = {driver.CHANNEL_R: 0, driver.CHANNEL_G: 1, driver.CHANNEL_B: 2,
+                                driver.CHANNEL_PAN: 3}
+        try:
+            self.channel_ctrl.SetSelection(ch2sel[self.channel])  # fails if it's CHANNEL_OFF
+        except:
+            pass
+        # TODO: also for gain, offset, voltage
+        # TODO: 'jumpy' behaviour, takes ~1s to adjust, so it sometimes jumps back and forth
 
         # Check the error status
         if self.error != 8:
@@ -577,20 +615,21 @@ class JoltApp(wx.App):
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
                 self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()
+                self.channel = self.dev.get_channel()
                 itec = self.dev.get_itec()
-                gain = self.dev.get_gain()
-                offset = self.dev.get_offset()
+                self.gain = self.dev.get_gain()
+                self.offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()
                 channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
                                 driver.CHANNEL_PAN: "PAN", driver.CHANNEL_OFF: "OFF"}
                 try:
-                    channel = channel_list[self.dev.get_channel()]
+                    channel = channel_list[self.channel]
                 except:
                     logging.error("Received unknown channel %s", self.dev.get_channel())
                     channel = self.dev.get_channel()
                 # Logging
                 logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
-                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", gain, offset, channel,
+                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", self.gain, self.offset, channel,
                              self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
                              self.error, itec)
 

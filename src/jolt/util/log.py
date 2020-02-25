@@ -21,7 +21,7 @@ import wx
 import logging
 import collections
 import threading
-from jolt.gui import wxlimit_invocation
+from jolt.util import wxlimit_invocation
 
 # Foreground (i.e text) colours
 FG_COLOUR_MAIN = "#GGGGGG"       # Default foreground colour

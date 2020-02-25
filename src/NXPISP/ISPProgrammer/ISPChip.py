@@ -2,11 +2,13 @@ from serial import Serial
 from collections import deque
 from timeout_decorator import timeout
 from time import sleep
+import time
 
 class ISPChip(object):
     NewLine = "\r\n"
-    def __init__(self, port = "/dev/ttyUSB0", baudrate = 9600):
-        self.uart = Serial(port, baudrate, xonxoff = False)
+    def __init__(self, serial, baudrate = 9600): #port = "/dev/ttyUSB0",
+        serial.baudrate = baudrate
+        self.uart = serial  #Serial(port, baudrate, xonxoff = False)
         self.frame = []
         self.DataBufferIn = deque()
 
@@ -29,9 +31,10 @@ class ISPChip(object):
         self.uart.flush()
 
     #@timeout(0.25)
-    @timeout(1)
+    #@timeout(1)
     def ReadLine(self):
-        while(not self.ReadFrame()):
+        startt = time.time()
+        while(not self.ReadFrame() and time.time() < startt + 2):
             self.Read()
         return self.GetBufferIn()
 

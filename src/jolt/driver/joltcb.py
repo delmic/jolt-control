@@ -2,8 +2,8 @@
 # -*- coding: latin1 -*-
 '''
 Created on 1 Oct 2019
-
-Copyright © 2019 Anders Muskens, Philip Winkler, Delmic
+@author: Philip Winkler
+Copyright � 2019 Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -107,7 +107,7 @@ class JOLTError(Exception):
     def __str__(self):
         return self.args[1]
 
-class JOLT():
+class JOLTComputerBoard():
     
     def __init__(self, simulated=False):
         self._ser_access = threading.Lock()
@@ -412,7 +412,7 @@ class JOLT():
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending command %s", msg)
+            #logging.debug("Sending command %s", msg)
             self._serial.write(msg)
         
             # Parse status
@@ -424,7 +424,7 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            logging.debug("Received status message %s" % stat)
+            #logging.debug("Received status message %s" % stat)
 
     def _send_query(self, cmd, arg=b""):
         """
@@ -440,7 +440,7 @@ class JOLT():
 
         # Send frame
         with self._ser_access:
-            logging.debug("Sending query %s", msg)
+            #logging.debug("Sending query %s", msg)
             self._serial.write(msg)
 
             # Parse status
@@ -452,7 +452,7 @@ class JOLT():
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
-            logging.debug("Received status %s" % stat)
+            #logging.debug("Received status %s" % stat)
 
             # Read response
             resp = b''
@@ -470,7 +470,7 @@ class JOLT():
                 resp += self._serial.read(l)  # message
                 resp += self._serial.read(1)  # EOT
                 ret = resp[4:-1]
-            logging.debug("Received response %s" % resp)
+            #logging.debug("Received response %s" % resp)
             return ret
         
     def terminate(self):
@@ -495,6 +495,7 @@ class JOLTSimulator():
         self.vacuum_pressure = int(50e3)  # µBar
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
+        self.itec = int(10e6)
 
         self._temp_thread = None
         self._stop_thread = False  # temperature thread
@@ -622,6 +623,9 @@ class JOLTSimulator():
         elif com == CMD_SET_CHANNEL:
             self._sendStatus(ACK)
             self.channel = int.from_bytes(arg, 'little', signed=True)
+        elif com == CMD_GET_ITEC:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.itec.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_ERROR:
             self._sendStatus(ACK)
             # TODO: send what?

@@ -6,12 +6,13 @@ This repository contains the control software for  Delmic's Jolt system.
 Customers of Delmic will receive executables for windows 7, 8 and 10. If you want to run the software from source, follow the instructions below.
 
 ### Prerequisites
-Install python3 on your computer and add the following packages with pip:\
+Install python3 on your computer and add the following packages with pip:  
 `pyinstaller, wxpython, appdirs, decorator, pyserial, timeout_decorator, click`
 
 ### Running from Source
-You can run the software from source on both linux and windows. Add the `src/` folder to your pythonpath and run the main program:\
-`python3 src/jolt/gui/jolt_app.py` to start the main GUI \
+You can run the software from source on both linux and windows. Add the `src/` folder to your pythonpath and run the main program:
+
+`python3 src/jolt/gui/jolt_app.py` to start the main GUI  
 `python3 src/jolt/fwupd/jolt_fwupd.py` to start the firmware updater GUI
 
 ### Building Windows Executables

@@ -3,10 +3,10 @@
 block_cipher = None
 
 
-a = Analysis(['..\\..\\src\\jolt\\fw_updater.py'],
+a = Analysis(['..\\..\\src\\jolt\\fwupd\\jolt_fwupd.py'],
              pathex=['../../src/jolt', 'C:\\development\\jolt-engineering\\install\\windows'],
              binaries=[],
-             datas=[('../../src/jolt/gui/fw_updater.xrc', 'gui'), ('../../src/jolt/gui/fw_updater.xrc', 'gui')],
+             datas=[('../../src/jolt/fwupd/fw_updater.xrc', '.')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],

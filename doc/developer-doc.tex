@@ -8,26 +8,75 @@
 
 \maketitle
 
-\section{Improving the GUI}
-The GUI uses wxpython with xrc files and the layout was designed with wxFormBuilder3.9 (todo: check version number) on Windows 10. It does not run on ubuntu. It is recommended not to directly change the xrc files, but only the fbp files from the wxFormBuilder GUI.
+\section{Software Overview}
+The \texttt{jolt-control} repository contains the control software and the firmware-updater for the Jolt system. Delmic engineers will have access to two additional repositories: \texttt{jolt-firmware} for the firmware code and \texttt{EOISerial} which provides a command line tool to communicate with the device (written by ElectroOptical Innovations).
 
-\section{Building Windows Executables}
-The source code can be packaged into an .exe file with \texttt{pyinstaller}. This needs to be done on a computer with the operating system that the executable should eventually be executed in. Currently we support Windows 10 and Windows 7, so this process has to be repeated twice. The installation can be performed in a virtual machine. 
+The main code is in src/jolt. It contains folders for the gui and the firmware updater. The entry point for the gui is src/jolt/gui/jolt\_app.py, for the firmware-updater, it is src/jolt/fwupd/fw\_updater.py Both can be run directly from the terminal after exporting the src folder to the pythonpath. The software runs on linux and windows.
+
+Additionally, there is the NXPISP folder inside src/ which contains code for uploading firmware to the device. It was also created by ElectroOptical Innovations and can be used according to the free licence (see licence file in the folder).
+
+\section{Jolt GUI}
+\subsection{Improving the GUI}
+The GUI uses wxpython with xrc files and the layout was designed with wxFormBuilder version 3.9 on Windows 10. It does not run on ubuntu. Other versions of wxFormBuilder do not work. It is recommended not to directly change the xrc files, but only the fbp files from the wxFormBuilder GUI.
+
+\section{EOISerial command line tool}
+For debugging purposes, there exists a command line tool that communicates with the computer board called \texttt{EOISerial}. Open the folder in a terminal, add it to the pythonpath (\texttt{export PYTHONPATH=<path>:\$PYTHONPATH}) and type \\ \texttt{python3 cbcnt.py status} \\to get all current settings. Commands can be send by typing \\ \texttt{python3 cbcnt.py command -c <command> -a <arg>} \\ The list of commands can be displayed with \texttt{python3 cbcnt.py command}. There also exists a pdf document with details on the commands and their arguments.
+
+\section{Firmware}
+
+\subsection{Uploading the firmware}
+For uploading the firmware binary, we provide a tool with a graphical user interface called jolt-fwupd. An executable can be built for windows according to the steps in the distribution section. The software allows you to select a binary for the computer board and a binary for the frontend board. It is possible to select only one of these two. It will automatically figure out if the computer board is empty or not and upload the firmware in both cases automatically.
+
+For debugging purposes, it is also possible to use the command line tool from the NXPISP library.
+\begin{itemize}
+	\item Download the EOISerial and the jolt-control libraries
+	\item Navigate in a terminal to jolt-engineering/src/NXPISP and type \texttt{python3 setup.py build \&\& sudo python3 setup.py install}. If that doesn't work, try:\\ \texttt{pip install .}
+	\item Navigate to the EOISerial folder and add that folder to the pythonpath (cf EOISerial command line tool section)
+	\item Now, we put the computer board in ISP mode. \\
+	For uploading firmware to the computer board:
+	\begin{itemize}
+		\item Blank computer board: no ISP mode needed, do nothing
+		\item Computer board contains firmware: \\
+		\texttt{python3 cbcnt.py command -c ISPMode 235}
+	\end{itemize}
+	For uploading firmware to the frontend board:
+\begin{itemize}
+	\item Blank computer board: \textbf{not possible}
+	\item Computer board with fw and blank frontend board: \texttt{python3 cbcnt.py command -c SetPassThroughMode -a 255 -t kuint8\_t}
+	\item Computer board and frontend board with firmware: \texttt{python3 cbcnt.py command -c SetFrontEndISPMode -a 235 -t kuint8\_t}
+\end{itemize}
+
+\end{itemize}
+
+\subsection{Building the firmware}
+The firmware code can be found in the \texttt{jolt-firmware} repository. It can built by following these steps:
+\begin{itemize}
+	\item
+\end{itemize}
+
+\section{Distribution}
+\subsection{Building Windows Executables}
+For distribution, we package the source code into an .exe file with \texttt{pyinstaller}. This needs to be done on a computer with the operating system that the executable should eventually be executed in. Currently we support Windows 10 and Windows 7, so this process has to be repeated twice. The installation can be performed in a virtual machine. 
 These are the steps:
 \begin{enumerate}
-	\item Install the Windows operating system in a virtual machine.
+	\item Install the Windows operating system in a virtual machine, e.g. VirtualBox.
 	\item Install Python 3 (e.g. 3.8, some older versions might also work)
 	\item Install pip
-	\item Use pip to install the following packages: pyinstaller, wxpython, appdirs, decorator, serial, pyserial
-	\item Open a terminal and navigate to the \texttt{jolt-engineering/install/windows} directory
-	\item type \texttt{pyinstaller --clean --onefile -y JoltApp.spec}
+	\item Use pip to install the following packages: pyinstaller (3.5), wxpython (4.0.6), appdirs (1.4.3), decorator (4.4.0), serial (0.0.97, not needed?), pyserial (3.4), timeout\_decorator (0.4.1), click (7.0)
+	\item Navigate in the file explorer to the \texttt{jolt-control/install/windows} directory
+	\item Double-click "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
 	\item The executable can be found in the \texttt{dist} folder.
 \end{enumerate}
 Some tricks for tuning the virtualbox settings:
 \begin{itemize}
-	\item todo
+	\item Set up serial port: Settings/Serial Ports: Enable serial port with port number "COM1" as "host device" with address "/dev/ttyUSBx". To get x, type "l /dev/ttyUSB*" into the terminal and use the one that comes up (in case the jolt is the only serial device that is connected to the computer).
+	\item Set up shared folder in Settings/Shared Folder. Click "add new folder" and add a path. Additionally, you need to activate it by going to the menubar and select Devices/ Insert Guest Additions CD Image after you started the virtual machine.\\
+	This will be useful for copying the executables from the virtual machine to your computer. Alternatively, you can set up dropbox in the virtual machine.
 \end{itemize}
-TODO: run it from source
+
+\subsection{Code Signing}
+Unsigned code will cause the windows firewall to at least show a warning which might concern the user, or, in the worst case, consider the file to be a virus and not run it at all. Delmic purchased a key, which can be used to sign the executables to avoid this.
+
 
 
 \end{document}

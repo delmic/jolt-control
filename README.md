@@ -19,7 +19,7 @@ You can run the software from source on both linux and windows. Add the `src/` f
 Navigate to the `install/windows` folder and run the build_jolt batch file. A terminal will open which allow you to select between building the main GUI and the firmware updater. Pyinstaller will create a `dist/` folder which will contain the executable.
 
 ## Developer Information
-More information for Delmic software developers can be found in the `doc/` folder.
+More information for Delmic software developers can be found in the `doc/` folder. For compiling the pdf install texlive, navigate to the folder in a terminal and type `pdflatex developer-doc.tex`.
 
 ## Links
 #### NXPISP Repository

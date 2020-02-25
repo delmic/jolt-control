@@ -2,8 +2,8 @@
 # -*- coding: latin1 -*-
 '''
 Created on 1 Oct 2019
-
-Copyright Â© 2019 Anders Muskens, Philip Winkler, Delmic
+@author: Philip Winkler
+Copyright © 2019 Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -107,7 +107,7 @@ class JOLTError(Exception):
     def __str__(self):
         return self.args[1]
 
-class JOLT():
+class JOLTComputerBoard():
     
     def __init__(self, simulated=False):
         self._ser_access = threading.Lock()

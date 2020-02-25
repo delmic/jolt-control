@@ -91,7 +91,7 @@
                                         <property name="aui_row"></property>
                                         <property name="best_size"></property>
                                         <property name="bg"></property>
-                                        <property name="bitmap">Load From File; img/icons8-toggle-off-32.png</property>
+                                        <property name="bitmap">Load From File; img/icon_toggle_off.png</property>
                                         <property name="caption"></property>
                                         <property name="caption_visible">1</property>
                                         <property name="center_pane">0</property>
@@ -309,7 +309,7 @@
                                 <property name="aui_row"></property>
                                 <property name="best_size"></property>
                                 <property name="bg"></property>
-                                <property name="bitmap">Load From File; img/icons8-toggle-off-32.png</property>
+                                <property name="bitmap">Load From File; img/icon_toggle_off.png</property>
                                 <property name="caption"></property>
                                 <property name="caption_visible">1</property>
                                 <property name="center_pane">0</property>

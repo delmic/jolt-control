@@ -42,4 +42,3 @@ while True:
     else:
         break
     print("\n\nBuild Done.")
-input("Press any key to exit.")

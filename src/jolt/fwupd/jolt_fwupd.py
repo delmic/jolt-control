@@ -17,34 +17,20 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
-import os
-import time
-import wx
-import wx.adv
-from wx import xrc
-import logging
-import threading
-import configparser
-from appdirs import AppDirs
-import jolt
-from jolt.util import log
-from jolt.gui import xmlh
-from jolt import driver
-from jolt.util import resource_path
-from jolt.gui import call_in_wx_main
-import sys
-import warnings
-import traceback
-from shutil import copyfile
-
-from jolt.driver import JOLT
-
-from jolt.gui.firmware import MyWizard1
-from jolt.JoltApp import JoltApp
 from NXPISP.bin import SetupChip
+import glob
+from jolt.driver import JOLTComputerBoard
+from jolt.util import resource_path, call_in_wx_main
+import os
 from serial import Serial
 import serial.tools.list_ports
-import glob
+import sys
+import threading
+import time
+import traceback
+from wx import xrc
+import wx
+
 
 COMPUTER_BOARD = 0
 FIRMWARE_BOARD = 1
@@ -81,7 +67,7 @@ class FirmwareUpdater(wx.App):
 
         # Check that JoltApp is not running
         try:
-            self.driver = JOLT()
+            self.driver = JOLTComputerBoard()
             self.portname = self.driver.portname
             self.serial = self.driver._serial
             print("Found jolt on port %s" % self.portname)
@@ -102,7 +88,7 @@ class FirmwareUpdater(wx.App):
 
     def OnInit(self, *args, **kwargs):
         # XRC Loading
-        self.res = xrc.XmlResource(resource_path('gui/fw_updater.xrc'))
+        self.res = xrc.XmlResource(resource_path('fw_updater.xrc'))
         self.dialog = self.res.LoadDialog(None, 'MyDialog1')
         
         self.upload_btn = xrc.XRCCTRL(self.dialog, 'upload_button')
@@ -219,7 +205,7 @@ class FirmwareUpdater(wx.App):
                 time.sleep(0.1)
             print("Reconnecting to driver...")
             self.serial.close()
-            self.driver = JOLT()
+            self.driver = JOLTComputerBoard()
             self.serial = self.driver._serial
 
         if self.file_fb:

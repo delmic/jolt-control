@@ -17,25 +17,23 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
+from appdirs import AppDirs
+import configparser
+from jolt import driver
+import jolt
+from jolt.gui import xmlh
+from jolt.util import log, resource_path, call_in_wx_main
+import logging
 import os
+from shutil import copyfile
+import sys
+import threading
 import time
+import traceback
+import warnings
+from wx import xrc
 import wx
 import wx.adv
-from wx import xrc
-import logging
-import threading
-import configparser
-from appdirs import AppDirs
-import jolt
-from jolt.util import log, resource_path
-from jolt.gui import xmlh
-from jolt import driver
-from jolt.util import *
-from jolt.gui import call_in_wx_main
-import sys
-import warnings
-import traceback
-from shutil import copyfile
 
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
@@ -91,7 +89,7 @@ class JoltApp(wx.App):
         :param simulated: True if the Jolt driver should be a simulator
         """
         try:
-            self.dev = driver.JOLT(simulated)
+            self.dev = driver.JOLTComputerBoard(simulated)
             self._startup_error = False
         except IOError as ex:
             self._startup_error = True
@@ -192,9 +190,9 @@ class JoltApp(wx.App):
         self._init_dialog()
 
         # load bitmaps
-        self.bmp_off = wx.Bitmap(resource_path("gui/img/icons8-toggle-off-32.png"))
-        self.bmp_on = wx.Bitmap(resource_path("gui/img/icons8-toggle-on-32.png"))
-        self.bmp_icon = wx.Bitmap(resource_path("gui/img/jolt-icon.png"))
+        self.bmp_off = wx.Bitmap(resource_path("img/icon_toggle_off.png"))
+        self.bmp_on = wx.Bitmap(resource_path("img/icon_toggle_on.png"))
+        self.bmp_icon = wx.Bitmap(resource_path("img/icon_jolt.png"))
 
         # set icon
         icon = wx.Icon()
@@ -206,7 +204,6 @@ class JoltApp(wx.App):
         self._set_gui_from_val()
         self.refresh()
 
-        #self.taskbar = taskbar.JoltTaskBarIcon(self.dialog)
         return True
 
     def _init_dialog(self):
@@ -215,7 +212,7 @@ class JoltApp(wx.App):
         """
 
         # XRC Loading
-        self.res = xrc.XmlResource(resource_path('gui/main.xrc'))
+        self.res = xrc.XmlResource(resource_path('jolt_app.xrc'))
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')
@@ -288,7 +285,7 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
         
         # Debugging: allow shortcut to enable all controls
-        f5_id = wx.NewIdRef()
+        f5_id = 1#wx.NewIdRef()
         self.dialog.Bind(wx.EVT_MENU, self._on_key, id=f5_id)
         accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id)])
         self.dialog.SetAcceleratorTable(accel_tbl)

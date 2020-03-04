@@ -58,7 +58,7 @@ class SpinCtrlDoubleXmlHandler (xrc.XmlResourceHandler):
             self.GetText("value"),
             self.GetPosition(),
             self.GetSize(),
-            self.GetStyle("style", wx.SP_ARROW_KEYS | wx.ALIGN_RIGHT),
+            self.GetStyle("style", wx.SP_ARROW_KEYS | wx.ALIGN_RIGHT | wx.TE_PROCESS_ENTER),
             self.GetFloat("min", DEFAULT_MIN),
             self.GetFloat("max", DEFAULT_MAX),
             self.GetFloat("initial", DEFAULT_INITIAL),

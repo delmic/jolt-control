@@ -333,8 +333,9 @@ class JoltApp(wx.App):
         :param t (float or None) current time. If specified, the function will only give an error
         if the value persists to be out of range after one minute.
         """
+        textctrl.SetForegroundColour(wx.BLACK)
         if srange[0] <= val <= srange[1]:
-            textctrl.SetForegroundColour(wx.BLACK)
+            textctrl.SetForegroundColour((50, 210, 50))  # somewhat less bright than wx.GREEN
             if name in self.warnings:
                 self.warnings.remove(name)  # clear the warning if the error goes away
             if name in self._attrs_to_watch:

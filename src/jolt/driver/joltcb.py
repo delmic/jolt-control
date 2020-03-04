@@ -178,14 +178,14 @@ class JOLTComputerBoard():
     
     def get_voltage(self):
         """
-        :returns: (-80 <= float <= 0): vbias in V
+        :returns: (0 <= float <= 80): vbias in V
         """
         b = self._send_query(CMD_GET_VOLTAGE)  # 4 bytes, -80e6 - 0
-        return int.from_bytes(b, 'little', signed=True) * 1e-6
+        return int.from_bytes(b, 'little', signed=True) * -1e-6
     
     def set_voltage(self, val):
         """
-        :param val: (-80 <= float <= 0): vbias in V
+        :param val: (0 <= float <= 80): vbias in V
         :returns: (None)
         """
         if not 0 <= val <= 80:
@@ -485,7 +485,7 @@ class JOLTSimulator():
 
         # TODO: use reasonable numbers
         self.power = False
-        self.voltage = int(12e6)  # µV
+        self.voltage = int(-12e6)  # µV
         self.offset = int(5e6)  # µV
         self.gain = int(10e6)  # µV
         self.mppc_temp = int(30e6)  # µC

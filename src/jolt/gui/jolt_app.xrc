@@ -109,7 +109,7 @@
 							<size>85,-1</size>
 							<value>3.600000</value>
 							<min>0</min>
-							<max>80</max>
+							<max>70</max>
 							<inc>0.05</inc>
 							<digits>2</digits>
 						</object>

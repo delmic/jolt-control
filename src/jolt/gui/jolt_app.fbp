@@ -448,7 +448,7 @@
                                 <property name="id">wxID_ANY</property>
                                 <property name="inc">0.05</property>
                                 <property name="initial">3.600000</property>
-                                <property name="max">80</property>
+                                <property name="max">70</property>
                                 <property name="max_size"></property>
                                 <property name="maximize_button">0</property>
                                 <property name="maximum_size"></property>

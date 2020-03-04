@@ -35,52 +35,22 @@ from wx import xrc
 import wx
 import wx.adv
 
+# Start simulator if environment variable is set
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
+# Set up logging
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
-# Get app config directories
-SAVE_CONFIG = True  # whether or not to save the last values to .ini
-dirs = AppDirs("Jolt", "Delmic")
-if os.path.isdir(dirs.user_data_dir):
-    CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
-else:
-    # Create directory if it doesn't exist
-    try:
-        os.makedirs(dirs.user_data_dir)
-        copyfile(resource_path('jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
-        CONFIG_FILE = os.path.join(dirs.user_data_dir, 'jolt.ini')
-    except:
-        logging.error("Failed to create user data directory, using default .ini file.")
-        CONFIG_FILE = 'jolt.ini'
-        SAVE_CONFIG = False
-
-if os.path.isdir(dirs.user_log_dir):
-    LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
-else:
-    # Create directory if it doesn't exist
-    try:
-        # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
-        os.makedirs(dirs.user_log_dir)
-        LOG_FILE = os.path.join(dirs.user_log_dir, 'jolt.log')
-    except:
-        logging.error("Failed to create user log directory, using default .ini file.")
-        LOG_FILE = resource_path('jolt.log')
-
-POLL_INTERVAL = 1.0 # seconds
-
+POLL_INTERVAL = 1.0  # seconds
+SAVE_CONFIG = True  # safe configuration before closing
+STR2CHANNEL = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B,
+               "Pan": driver.CHANNEL_PAN, "OFF": driver.CHANNEL_OFF}
+CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
+                driver.CHANNEL_PAN: "Pan", driver.CHANNEL_OFF: "OFF"}
 
 class JoltApp(wx.App):
     """
-    The Jolt Control Window App
-
-    Requires files
-    xrc/main.xrc
-    CONFIG_FILE: an ini file for settings
-
-    Creates files:
-    jolt.log: Log file
-
+    The Jolt Control Window Application
     """
 
     def __init__(self, simulated=TEST_NOHW):
@@ -88,45 +58,50 @@ class JoltApp(wx.App):
         Constructor
         :param simulated: True if the Jolt driver should be a simulator
         """
+        self.simulated = simulated
+        self.debug_mode = False
+        self.should_close = threading.Event()  # stop polling thread if set
+        self.warnings = set()
+        self.error_codes = set()
+        self.attrs_to_watch = {}  # empty dict
+
+        # Load configuration and logging files, create directories if they don't exist
+        dirs = AppDirs("Jolt", "Delmic")
+        self.config_file = os.path.join(dirs.user_data_dir, 'jolt.ini')
+        self.log_file = os.path.join(dirs.user_log_dir, 'jolt.log')  # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
+        if not os.path.isdir(dirs.user_data_dir):
+            os.makedirs(dirs.user_data_dir)
+            copyfile(resource_path('jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
+        if not os.path.isdir(dirs.user_log_dir):
+            os.makedirs(dirs.user_log_dir)
+
+        # Initialize values
+        self.voltage, self.gain, self.offset, self.channel = self.load_config()
+        self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure = (0, 0, 0)
+        self.error = 8  # 8 means no error
+        self.target_temp = 24
+        self.voltage_gui = self.voltage
+        self.power = False
+        self.hv = False
+
+        # Initialize wx components
+        super().__init__(self)
+        self.init_dialog()
+
+        # Start driver
         try:
             self.dev = driver.JOLTComputerBoard(simulated)
-            self._startup_error = False
+            self.startup_error = False
         except IOError as ex:
-            self._startup_error = True
+            self.startup_error = True
             super().__init__(self)
             dlg = wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
-            return None
+            return
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
-
-        self._simulated = simulated
-        self.should_close = threading.Event()
-
-        # Load config
-        self._voltage, self._gain, self._offset = self.load_config()
-        self._channel = 1
-        self.voltage = 0.0
-        self.mppc_temp = 0.0
-        self.heat_sink_temp = 0.0
-        self.vacuum_pressure = 0.0
-        self.error = 8  # 8 means no error
-        self._target_temp = 24
-        self._attrs_to_watch = {}
-
-        # settings
-        self._power = False
-        self._hv = False
-        self._call_auto_bc = threading.Event()
-        self._debug_mode = False
-
-        # set of warnings currently active
-        self.warnings = set()
-        self.error_codes = set()
-
-        # Initialize wx components
-        super().__init__(self)
+            return
 
         # Get information from hardware for the log
         logging.info("Software version: %s", jolt.__version__)
@@ -137,80 +112,61 @@ class JoltApp(wx.App):
         logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
         logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
 
-        # Output single-ended, not differential
+        # Set hw output to single-ended
         self.dev.set_signal_type(single_ended=True)
 
-        # start the thread for polling
-        self.polling_thread = threading.Thread(target=self._do_poll)
+        # Write gain, offset, channel parameters to device
+        self.dev.set_gain(self.gain)
+        self.dev.set_offset(self.offset)
+        self.dev.set_channel(STR2CHANNEL[self.channel])
+
+        # Start the thread for polling
+        self.polling_thread = threading.Thread(target=self.do_poll)
         self.polling_thread.start()
 
+        # Don't write voltage to device yet, but show value in the gui
+        self.spinctrl_voltage.SetValue(self.voltage_gui)
+        self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
 
     def load_config(self):
-        # Load config from file
+        """
+        Reads configuration file
+        :returns: (float, float, float, str): voltage, gain, offset, channel
+        """
         self.config = configparser.ConfigParser()
-        logging.debug("Reading config %s", CONFIG_FILE)
-        self.config.read(CONFIG_FILE)
-
+        logging.debug("Reading configuration file %s", self.config_file)
+        self.config.read(self.config_file)
         try:
             voltage = self.config.getfloat('DEFAULT', 'voltage')
             gain = self.config.getfloat('DEFAULT', 'gain')
             offset = self.config.getfloat('DEFAULT', 'offset')
-        except (LookupError, KeyError, configparser.NoOptionError):
-            logging.error("Invalid or missing configuration file, falling back to default values.")
-            voltage = 0.0
-            gain = 0.0
-            offset = 0.0
-
-        return voltage, gain, offset
+            channel = self.config.get('DEFAULT', 'channel')
+        except Exception as ex:
+            logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+            voltage, gain, offset, channel = (0.0, 0.0, 0.0, "R")
+        if channel not in ["R", "G", "B", "Pan"]:
+            channel = "R"
+        return voltage, gain, offset, channel
 
     def save_config(self):
         """
-        Save the configuration in the window to an INI file.
-        This is usually called when the window is closed.
-        :return:
+        Save the configuration to an INI file. This is usually called when the window is closed.
         """
         if not SAVE_CONFIG:
             logging.warning("Not saving jolt state.")
             return
-        cfgfile = open(CONFIG_FILE, 'w')
-        self.config.set('DEFAULT', 'voltage', str(self._voltage))
-        self.config.set('DEFAULT', 'gain', str(self._gain))
-        self.config.set('DEFAULT', 'offset', str(self._offset))
+        cfgfile = open(self.config_file, 'w')
+        self.config.set('DEFAULT', 'voltage', str(self.voltage_gui))
+        self.config.set('DEFAULT', 'gain', str(self.gain))
+        self.config.set('DEFAULT', 'offset', str(self.offset))
+        self.config.set('DEFAULT', 'channel', str(self.channel))
         self.config.write(cfgfile)
         cfgfile.close()
 
-    def OnInit(self):
-        """
-        Function called when the wxWindow is initialized.
-        """
-        if self._startup_error:
-            return True
-
-        # open the main control window dialog
-        self._init_dialog()
-
-        # load bitmaps
-        self.bmp_off = wx.Bitmap(resource_path("img/icon_toggle_off.png"))
-        self.bmp_on = wx.Bitmap(resource_path("img/icon_toggle_on.png"))
-        self.bmp_icon = wx.Bitmap(resource_path("img/icon_jolt.png"))
-
-        # set icon
-        icon = wx.Icon()
-        icon.CopyFromBitmap(self.bmp_icon)
-        self.dialog.SetIcon(icon)
-        self.dialog.Show()
-
-        # Refresh the live values
-        self._set_gui_from_val()
-        self.refresh()
-
-        return True
-
-    def _init_dialog(self):
+    def init_dialog(self):
         """
         Load the XRC GUI and connect all of the GUI controls to their event handlers
         """
-
         # XRC Loading
         self.res = xrc.XmlResource(resource_path('jolt_app.xrc'))
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
@@ -228,8 +184,8 @@ class JoltApp(wx.App):
         self.textHandler.setFormatter(formatter)
 
         # add a file logger handler
-        logging.debug("Opening log file %s", LOG_FILE)
-        self.fileHandler = logging.FileHandler(LOG_FILE)
+        logging.debug("Opening log file %s", self.log_file)
+        self.fileHandler = logging.FileHandler(self.log_file)
         self.fileHandler.setLevel(logging.DEBUG)
         self.fileHandler.setFormatter(formatter)
 
@@ -241,66 +197,77 @@ class JoltApp(wx.App):
         # controls and events:
         # Initialize all of the GUI controls and connect them to events
         self.ctl_power =  xrc.XRCCTRL(self.dialog, 'ctl_power')
-        self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.OnPower)
+        self.ctl_power.Bind(wx.EVT_LEFT_DOWN, self.on_power)
         self.ctl_hv = xrc.XRCCTRL(self.dialog, 'ctl_hv')
-        self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.OnHV)
+        self.ctl_hv.Bind(wx.EVT_LEFT_DOWN, self.on_voltage_button)
 
         self.btn_auto_bc = xrc.XRCCTRL(self.dialog, 'btn_AutoBC')
-        self.dialog.Bind(wx.EVT_BUTTON, self.OnAutoBC, id=xrc.XRCID('btn_AutoBC'))
+        self.dialog.Bind(wx.EVT_BUTTON, self.on_auto_bc, id=xrc.XRCID('btn_AutoBC'))
 
         # tooltip power
         self.ctl_power.ToolTip = wx.ToolTip("Cooling can only be turned on if pressure is OK")
 
         # voltage
         self.spinctrl_voltage = xrc.XRCCTRL(self.dialog, 'spn_voltage')
-        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnVoltage, id=xrc.XRCID('spn_voltage'))
+        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_voltage_value, id=xrc.XRCID('spn_voltage'))
 
         # gain and offset
         self.slider_gain = xrc.XRCCTRL(self.dialog, 'slider_gain')
         self.slider_offset = xrc.XRCCTRL(self.dialog, 'slider_offset')
         self.spinctrl_gain = xrc.XRCCTRL(self.dialog, 'spin_gain')
         self.spinctrl_offset = xrc.XRCCTRL(self.dialog, 'spin_offset')
-        self.dialog.Bind(wx.EVT_SCROLL, self.OnGainSlider, id=xrc.XRCID('slider_gain'))
-        self.dialog.Bind(wx.EVT_SCROLL, self.OnOffsetSlider, id=xrc.XRCID('slider_offset'))
-        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnGainSpin, id=xrc.XRCID('spin_gain'))
-        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.OnOffsetSpin, id=xrc.XRCID('spin_offset'))
+        self.dialog.Bind(wx.EVT_SCROLL, self.on_gain_slider, id=xrc.XRCID('slider_gain'))
+        self.dialog.Bind(wx.EVT_SCROLL, self.on_offset_slider, id=xrc.XRCID('slider_offset'))
+        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_gain_spin, id=xrc.XRCID('spin_gain'))
+        self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_offset_spin, id=xrc.XRCID('spin_offset'))
 
-        # Channel select
+        # channel selection
         self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
         self.channel_ctrl.SetSelection(0)
-        self.dialog.Bind(wx.EVT_RADIOBOX, self.OnRadioBox, id=xrc.XRCID('radio_channel'))
+        self.dialog.Bind(wx.EVT_RADIOBOX, self.on_radiobox, id=xrc.XRCID('radio_channel'))
 
-        # Live displays
-        self.txtbox_current = xrc.XRCCTRL(self.dialog, 'txtbox_current')
-        #self.txtbox_current.Enable(False)
+        # live displays
+        self.txtbox_output = xrc.XRCCTRL(self.dialog, 'txtbox_current')
         self.txtbox_MPPCTemp = xrc.XRCCTRL(self.dialog, 'txtbox_MPPCTemp')
         self.txtbox_sinkTemp = xrc.XRCCTRL(self.dialog, 'txtbox_sinkTemp')
         self.txtbox_vacuumPressure = xrc.XRCCTRL(self.dialog, 'txtbox_vacuumPressure')
 
         # log display
         self.btn_viewLog = xrc.XRCCTRL(self.dialog, 'btn_viewLog', wx.CollapsiblePane)
-        self.dialog.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.OnCollapseLog, id=xrc.XRCID('btn_viewLog'))
+        self.dialog.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_collapse_log, id=xrc.XRCID('btn_viewLog'))
 
         # catch the closing event
-        self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
+        self.dialog.Bind(wx.EVT_CLOSE, self.on_close)
         
-        # Debugging: allow shortcut to enable all controls
-        f5_id = 1#wx.NewIdRef()
-        self.dialog.Bind(wx.EVT_MENU, self._on_key, id=f5_id)
+        # debug mode: allow F5 shortcut to enable all controls
+        f5_id = 1
+        self.dialog.Bind(wx.EVT_MENU, self.on_f5, id=f5_id)
         accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id)])
         self.dialog.SetAcceleratorTable(accel_tbl)
+        self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')  # will be updated in debug mode
+        self.txtbox_output.SetFocus()  # if focus is None, the f5 event is not captured, so set focus to a textbox
 
-        self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')
-
-        if self._simulated:
+        # change title for simulator to avoid confusion
+        if self.simulated:
             self.dialog.SetTitle("Delmic Jolt Simulator")
 
+        # Load bitmaps
+        self.bmp_off = wx.Bitmap(resource_path("img/icon_toggle_off.png"))
+        self.bmp_on = wx.Bitmap(resource_path("img/icon_toggle_on.png"))
+        self.bmp_icon = wx.Bitmap(resource_path("img/icon_jolt.png"))
+
+        # set icon
+        icon = wx.Icon()
+        icon.CopyFromBitmap(self.bmp_icon)
+        self.dialog.SetIcon(icon)
+
+        self.dialog.Show()
         self.refresh()
 
     @call_in_wx_main
-    def _on_key(self, event):
-        if self._debug_mode:
-            self._debug_mode = False
+    def on_f5(self, event):
+        if self.debug_mode:
+            self.debug_mode = False
         else:
             passwd = wx.PasswordEntryDialog(None, "Enter Debug Mode", 'Password','',
                                             style=wx.TextEntryDialogStyle)
@@ -308,24 +275,18 @@ class JoltApp(wx.App):
             if ans == wx.ID_OK:
                 entered_password = passwd.GetValue()
                 if entered_password == "delmic":
-                    self._debug_mode = True
+                    self.debug_mode = True
             passwd.Destroy()
         self.refresh()
         event.Skip()
-        
-    @call_in_wx_main
-    def _set_gui_from_val(self):
-        # Set the values from the currently loaded values
-        self.spinctrl_voltage.SetValue(self._voltage)
-        self.slider_gain.SetValue(self._gain)
-        self.slider_offset.SetValue(self._offset)
-        self.spinctrl_gain.SetValue(self._gain)
-        self.spinctrl_offset.SetValue(self._offset)
 
     def check_saferange(self, textctrl, val, srange, name, t=None):
         """
-        Turn a TextCtrl text red if the val is not in the range
-        Display an error message if the value is out of the range.
+        Checks if a value is in the defined safe range and displays it in the corresponding colour
+        (green if it's ok, red if it isn't, black if it's still adjusting). If the value is outside
+        the range, a system warning will be displayed and the device will be powered off.
+        If the current time is specified in the t parameter, there will be a buffer of 1 minute for
+        the value to adjust. During this time period, the value will be displayed in black.
         :param textctrl: wx TextCtrl
         :param val: (float) a value
         :param srange: (float tuple) safe range
@@ -338,8 +299,8 @@ class JoltApp(wx.App):
             textctrl.SetForegroundColour((50, 210, 50))  # somewhat less bright than wx.GREEN
             if name in self.warnings:
                 self.warnings.remove(name)  # clear the warning if the error goes away
-            if name in self._attrs_to_watch:
-                del self._attrs_to_watch[name]
+            if name in self.attrs_to_watch:
+                del self.attrs_to_watch[name]
         else:
             if not t:
                 textctrl.SetForegroundColour(wx.RED)
@@ -350,14 +311,14 @@ class JoltApp(wx.App):
                                                      flags=wx.ICON_WARNING)
                     msg.Show()
                 # Power off
-                if self._power and not self._debug_mode:
+                if self.power and not self.debug_mode:
                     self.toggle_power()
                 logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
                                 name, val, srange[0], srange[1])
-            elif name not in self._attrs_to_watch:
+            elif name not in self.attrs_to_watch:
                 # don't complain yet, but take notice
-                self._attrs_to_watch[name] = t
-            elif time.time() >= self._attrs_to_watch[name] + 60:
+                self.attrs_to_watch[name] = t
+            elif time.time() >= self.attrs_to_watch[name] + 60:
                 textctrl.SetForegroundColour(wx.RED)
                 # this way, the warning message is only displayed when the warning first occurs
                 if name not in self.warnings:
@@ -366,18 +327,15 @@ class JoltApp(wx.App):
                                                      flags=wx.ICON_WARNING)
                     msg.Show()
                 # Power off
-                if self._power and not self._debug_mode:
+                if self.power and not self.debug_mode:
                     self.toggle_power()
                 logging.warning("%s (%f) is outside of the safe range of operation (%f -> %f).",
                                 name, val, srange[0], srange[1])
-                del self._attrs_to_watch[name]
+                del self.attrs_to_watch[name]
 
-    def OnClose(self, event):
-        """
-        Event on window close
-        """
-        # Check if the user should power down
-        if self._power:
+    def on_close(self, event):
+        # If device is powered on, ask use to power it off first
+        if self.power:
             dlg = wx.MessageDialog(None, "Power down the Jolt hardware before closing the application?", 'Notice', wx.OK | wx.CANCEL | wx.ICON_WARNING)
             dlg.SetOKCancelLabels("Power down", "Cancel closing")
             result = dlg.ShowModal()
@@ -386,116 +344,111 @@ class JoltApp(wx.App):
                 logging.info("Powering down Jolt...")
                 self.dev.set_target_mppc_temp(24)
             else:
-                # Cancel closing
-                return
+                return  # Cancel closing
 
-        # end the polling thread
-        self.should_close.set()
-
-        self.save_config() # Save config to INI
+        self.should_close.set()  # Stop the polling thread
+        self.save_config()  # Save config to INI
         self.dialog.Destroy()
         event.Skip()
 
-    def OnCollapseLog(self, event):
+    def on_collapse_log(self, event):
         self.dialog.Fit()
         event.Skip()
 
-    def OnPower(self, event):
+    def on_power(self, event):
         self.toggle_power()
 
     def toggle_power(self):
-        # Toggle the power value
         if self.ctl_power.IsEnabled():
-            self._power = not self._power
-            logging.info("Changed power state to: %s", self._power)
-            if self._power:
-                if self._debug_mode:
-                    self._target_temp = 15
-                    self.dev.set_target_mppc_temp(15)
+            self.power = not self.power
+            logging.info("Changed power state to: %s", self.power)
+            if self.power:
+                if self.debug_mode:
+                    self.target_temp = 15
                 else:
-                    self._target_temp = -10
-                    self.dev.set_target_mppc_temp(-10)
+                    self.target_temp = -10
             else:
-                self._target_temp = 24
-                self.dev.set_target_mppc_temp(24)
-        # Turn voltage off
-        if not self._power:
-            self._hv = False
-            logging.info("Changed voltage state to: %s", self._hv)
+                self.target_temp = 24
+            self.dev.set_target_mppc_temp(self.target_temp)
+
+        # Turn voltage off if device is not powered on
+        if not self.power:
+            self.hv = False
+            logging.info("Changed voltage state to: %s", self.hv)
             self.dev.set_voltage(0)
-        if self._power:
-            # write parameters to device
-            self.dev.set_gain(self._gain)
-            self.dev.set_offset(self._offset)
-            self.dev.set_channel(self._channel)
+            self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
+            self.spinctrl_voltage.SetValue(self.voltage_gui)
+
         self.refresh()
 
-    def OnHV(self, event):
+    def on_voltage_button(self, event):
+        """
+        Enable/disable voltage changes. If disabled, set voltage to 0. 
+        """
         # Toggle the HV value
-        self._hv = not self._hv
-        logging.info("Changed voltage state to: %s", self._hv)
+        self.hv = not self.hv
+        logging.info("Changed voltage state to: %s", self.hv)
 
-        if self._hv:
+        if self.hv:
             # write parameters to device
-            self.dev.set_voltage(self._voltage)
-            self.dev.set_gain(self._gain)
-            self.dev.set_offset(self._offset)
-            self.dev.set_channel(self._channel)
+            self.dev.set_voltage(self.voltage_gui)
+            self.spinctrl_voltage.SetForegroundColour(wx.Colour(wx.BLACK))
         else:
             self.dev.set_voltage(0)
+            # light grey to show it's not actually set
+            self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
+            self.spinctrl_voltage.SetValue(self.voltage_gui)
         self.refresh()
 
-    def OnAutoBC(self, event):
-        # Call Auto BC
+    def on_auto_bc(self, event):
         raise NotImplementedError()
-#         logging.info("Calling auto BC")
-#         self.dev.call_auto_bc()
-#         self._call_auto_bc.set()
-#         self.enable_gain_offset_controls(False)
+        # disable gain/offset controls
 
-    def OnVoltage(self, event):
-        self._voltage = event.GetValue()
-        if self._hv:
-            logging.debug("Changed voltage to %s", self._voltage)
-            self.dev.set_voltage(self._voltage)
+    def on_voltage_value(self, event):
+        """
+        Set voltage if voltage change enabled, otherwise ignore.
+        """
+        self.voltage_gui = event.GetValue()
+        if self.hv:
+            logging.debug("Changed voltage to %s", self.voltage_gui)
+            self.dev.set_voltage(self.voltage_gui)
+        # Set focus to dialog when we're done, so the ctrl will update with values from the hw
+        self.txtbox_output.SetFocus()
         event.Skip()
 
-    def OnRadioBox(self, event):
-        channels = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B, "Pan": driver.CHANNEL_PAN}
-        self.dev.set_channel(channels[event.GetEventObject().GetStringSelection()])
+    def on_radiobox(self, event):
+        self.dev.set_channel(STR2CHANNEL[event.GetEventObject().GetStringSelection()])
         logging.debug("Changed channel to %s", event.GetEventObject().GetStringSelection())
         event.Skip()
 
-    def OnGainSlider(self, event):
-        self._gain = event.GetPosition()
-        self.spinctrl_gain.SetValue(self._gain)
-        self.dev.set_gain(self._gain)
-        logging.debug("Changed gain to %s", self._gain)
+    def on_gain_slider(self, event):
+        gain = event.GetPosition()
+        self.spinctrl_gain.SetValue(gain)
+        self.dev.set_gain(gain)
+        logging.debug("Changed gain to %s", gain)
         event.Skip()
 
-    def OnOffsetSlider(self, event):
-        self._offset = event.GetPosition()
-        self.spinctrl_offset.SetValue(self._offset)
-        self.dev.set_offset(self._offset)
-        logging.debug("Changed offset to %s", self._offset)
+    def on_offset_slider(self, event):
+        offset = event.GetPosition()
+        self.spinctrl_offset.SetValue(offset)
+        self.dev.set_offset(offset)
+        logging.debug("Changed offset to %s", offset)
         event.Skip()
 
-    def OnGainSpin(self, event):
-        self._gain = event.GetValue()
-        self.slider_gain.SetValue(int(self._gain))
-        self.dev.set_gain(self._gain)
-        logging.debug("Changed gain to %s", self._gain)
+    def on_gain_spin(self, event):
+        gain = event.GetValue()
+        self.slider_gain.SetValue(int(gain))
+        self.dev.set_gain(gain)
+        logging.debug("Changed gain to %s", gain)
+        self.txtbox_output.SetFocus()
         event.Skip()
 
-    def OnOffsetSpin(self, event):
-        self._offset = event.GetValue()
-        self.slider_offset.SetValue(int(self._offset))
-        self.dev.set_offset(self._offset)
-        logging.debug("Changed offset to %s", self._offset)
-        event.Skip()
-
-    def OnRefreshGUI(self, event):
-        self.refresh()
+    def on_offset_spin(self, event):
+        offset = event.GetValue()
+        self.slider_offset.SetValue(int(offset))
+        self.dev.set_offset(offset)
+        logging.debug("Changed offset to %s", offset)
+        self.txtbox_output.SetFocus()
         event.Skip()
 
     @call_in_wx_main
@@ -512,12 +465,12 @@ class JoltApp(wx.App):
             return bmp.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
 
         pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
-        if self._debug_mode or self._power:
+        if self.debug_mode or self.power:
             # enable all
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(True)
-            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
-            self.ctl_hv.SetBitmap(self.bmp_on if self._hv else self.bmp_off)
+            self.ctl_power.SetBitmap(self.bmp_on if self.power else self.bmp_off)
+            self.ctl_hv.SetBitmap(self.bmp_on if self.hv else self.bmp_off)
             self.channel_ctrl.Enable(True)
             self.spinctrl_voltage.Enable(True)
             self.slider_gain.Enable(True)
@@ -528,8 +481,8 @@ class JoltApp(wx.App):
             # enable power, disable rest
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(False)
-            self.ctl_power.SetBitmap(self.bmp_on if self._power else self.bmp_off)
-            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.ctl_power.SetBitmap(self.bmp_on if self.power else self.bmp_off)
+            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self.hv else disable_bmp(self.bmp_off))
             self.channel_ctrl.Enable(False)
             self.spinctrl_voltage.Enable(False)
             self.slider_gain.Enable(False)
@@ -540,8 +493,8 @@ class JoltApp(wx.App):
             # disable all
             self.ctl_power.Enable(False)
             self.ctl_hv.Enable(False)
-            self.ctl_power.SetBitmap(disable_bmp(self.bmp_on) if self._power else disable_bmp(self.bmp_off))
-            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self._hv else disable_bmp(self.bmp_off))
+            self.ctl_power.SetBitmap(disable_bmp(self.bmp_on) if self.power else disable_bmp(self.bmp_off))
+            self.ctl_hv.SetBitmap(disable_bmp(self.bmp_on) if self.hv else disable_bmp(self.bmp_off))
             self.channel_ctrl.Enable(False)
             self.spinctrl_voltage.Enable(False)
             self.slider_gain.Enable(False)
@@ -553,7 +506,7 @@ class JoltApp(wx.App):
         self.btn_auto_bc.Enable(False)
 
         # Show we are in debug mode
-        if self._debug_mode:
+        if self.debug_mode:
             self.power_label.SetLabel("Power\tDEBUG MODE")
             self.power_label.SetForegroundColour(wx.Colour(wx.RED))
         else:
@@ -566,7 +519,7 @@ class JoltApp(wx.App):
         Refreshes the GUI display values
         """
         # Show settings for temperature, pressure etc
-        self.txtbox_current.SetValue("%.2f" % self.output)
+        self.txtbox_output.SetValue("%.2f" % self.output)
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
         pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
@@ -575,18 +528,30 @@ class JoltApp(wx.App):
         else:
             self.txtbox_vacuumPressure.SetValue("vented")
         # Check ranges, create notification if necessary
-        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self._target_temp - 1, self._target_temp + 1], "MPCC Temperature", time.time())
+        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp - 1, self.target_temp + 1], "MPCC Temperature", time.time())
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 
-        ch2sel = {driver.CHANNEL_R: 0, driver.CHANNEL_G: 1, driver.CHANNEL_B: 2,
-                                driver.CHANNEL_PAN: 3}
+        # Modify controls to show hardware values
+        ch2sel = {"R": 0, "G": 1, "B": 2, "Pan": 3}
         try:
             self.channel_ctrl.SetSelection(ch2sel[self.channel])  # fails if it's CHANNEL_OFF
         except:
             pass
-        # TODO: also for gain, offset, voltage
-        # TODO: 'jumpy' behaviour, takes ~1s to adjust, so it sometimes jumps back and forth
+        self.slider_gain.SetValue(self.gain)
+        self.slider_offset.SetValue(self.offset)
+        # Don't refresh text controls that can be changed, it's annoying if you're trying to write
+        # Also don't update voltage control when voltage is off, we want to be able to easily turn the
+        # voltage on without readjusting the value.
+        # After entering a value, the focus will be automatically set to the output textbox, so there
+        # is a good chance that the textbox is going to be updated when we're not actively writing in it
+        # (this last point is implemented in the event callback functions).
+        focus = self.dialog.FindFocus()
+        for ctrl, val in [(self.spinctrl_gain, self.gain), (self.spinctrl_offset, self.offset)]:
+            if not focus == ctrl:
+                ctrl.SetValue(val)
+        if self.hv and focus != self.spinctrl_voltage:
+            self.spinctrl_voltage.SetValue(self.voltage)
 
         # Check the error status
         if self.error != 8:
@@ -604,7 +569,7 @@ class JoltApp(wx.App):
         # Update controls
         self.update_controls()
 
-    def _do_poll(self):
+    def do_poll(self):
         """
         This function is run in a thread and handles the polling of the device on a time interval
         """
@@ -612,27 +577,20 @@ class JoltApp(wx.App):
             while not self.should_close.is_set():
                 # Get new values from the device
                 self.output = self.dev.get_output_single_ended()
-                self.mppc_temp = self.dev.get_cold_plate_temp()
-                self.heat_sink_temp = self.dev.get_hot_plate_temp()
-                self.vacuum_pressure = self.dev.get_vacuum_pressure()
-                self.error = self.dev.get_error_status()
-                self.channel = self.dev.get_channel()
-                itec = self.dev.get_itec()
                 self.gain = self.dev.get_gain()
                 self.offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()
-                channel_list = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
-                                driver.CHANNEL_PAN: "PAN", driver.CHANNEL_OFF: "OFF"}
-                try:
-                    channel = channel_list[self.channel]
-                except:
-                    logging.error("Received unknown channel %s", self.dev.get_channel())
-                    channel = self.dev.get_channel()
-                # Logging
+                self.channel = CHANNEL2STR[self.dev.get_channel()]
+                self.mppc_temp = self.dev.get_cold_plate_temp()
+                self.heat_sink_temp = self.dev.get_hot_plate_temp()
+                self.pressure = self.dev.get_vacuum_pressure()
+                self.error = self.dev.get_error_status()
+                self.itec = self.dev.get_itec()
+
                 logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
-                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", self.gain, self.offset, channel,
-                             self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
-                             self.error, itec)
+                             "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", self.gain, self.offset,
+                             self.channel, self.mppc_temp, self.heat_sink_temp, self.pressure, self.voltage, self.output,
+                             self.error, self.itec)
 
                 # Refresh gui with these values
                 self.refresh()

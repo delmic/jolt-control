@@ -45,14 +45,13 @@ For debugging purposes, it is also possible to use the command line tool from th
 	\item Computer board with fw and blank frontend board: \texttt{python3 cbcnt.py command -c SetPassThroughMode -a 255 -t kuint8\_t}
 	\item Computer board and frontend board with firmware: \texttt{python3 cbcnt.py command -c SetFrontEndISPMode -a 235 -t kuint8\_t}
 \end{itemize}
+	\item Run NXPISP:\\
+	 \texttt{ISPProgrammer -c LPC845 writeimage --imagein /PATH-TO-BIN-FILE/ -d /dev/ttyUSB0}.\\ It might be necessary two run this command two or three times until it works.
 
 \end{itemize}
 
 \subsection{Building the firmware}
-The firmware code can be found in the \texttt{jolt-firmware} repository. It can built by following these steps:
-\begin{itemize}
-	\item
-\end{itemize}
+The firmware code can be found in the \texttt{jolt-firmware} repository. Follow the instructions in the readme of this directory to build the binaries.
 
 \section{Distribution}
 \subsection{Building Windows Executables}

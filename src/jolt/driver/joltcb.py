@@ -38,6 +38,8 @@ ID_STATUS = chr(0x53).encode('latin1')  # packet identifier command
 ID_ASCII = chr(0x4D).encode('latin1')  # packet identifier ascii message
 ID_BIN = chr(0x04).encode('latin1')  # packet identifier binary message
 
+ERROR_CODE = chr(0x59).encode('latin1')  # TODO
+
 CMD_GET_VERSION = 0x60
 CMD_GET_FIRMWARE_VER = 0x61
 CMD_GET_COMPILE_DATE = 0x62
@@ -51,25 +53,16 @@ CMD_GET_FRONTEND_SERIAL_NUM = 0x74
 CMD_GET_FRONTEND_VBIAS = 0x95
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_GET_HOT_PLATE_TEMP = 0x8d
-CMD_SET_TEMP = 0xb0
-CMD_SET_VBIAS = 0xc9  # setvbias               
-ERROR_CODE = chr(0x59).encode('latin1')
-CMD_SET_POWER = 0x01  # not working
-ON = chr(0xff).encode('latin1')
-OFF = chr(0x00).encode('latin1')
 CMD_CALL_AUTO_BC = 0x00
 CMD_GET_CHANNEL_LIST = 0x00
-
-# Currently in use
 CMD_GET_MPPC_TEMP = 0xb1
-CMD_GET_OUTPUT_SINGLE_ENDED = 0xbe # show singleneded output #0x8a  # get vs
+CMD_GET_OUTPUT_SINGLE_ENDED = 0xbe
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_GET_VACUUM_PRESSURE = 0x92
-
 CMD_SET_GAIN = 0x89
 CMD_SET_CHANNEL = 0x91
 CMD_SET_VOLTAGE = 0xc9
-CMD_SET_OFFSET = 0xbf#0x9b  # setvosprog
+CMD_SET_OFFSET = 0xbf
 CMD_GET_GAIN = 0x88
 CMD_GET_CHANNEL = 0x90
 CMD_GET_VOLTAGE = 0xca
@@ -77,7 +70,6 @@ CMD_GET_OFFSET = 0xE0
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_SET_MPPC_TEMP = 0xb0
 CMD_GET_ITEC = 0xcd
-
 CMD_SET_DifferentialOutput = 0xba
 CMD_SET_SingleEndedOutput = 0xbd
 CMD_GET_ERROR = 0x9e
@@ -173,8 +165,6 @@ class JOLTComputerBoard():
         :returns: (None)
         """
         raise NotImplementedError()
-        #arg = ON if val else OFF
-        #self._send_cmd(CMD_SET_POWER, arg)
     
     def get_voltage(self):
         """
@@ -221,11 +211,6 @@ class JOLTComputerBoard():
         """
         :returns: (0 <= float <= 100) output offset
         """
-#         b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
-#         offset = int.from_bytes(b, 'little', signed=True) * 1e-6
-#         # Offset is between -5 and 5 V, scale to [0, 100]
-#         offset = (offset * 10) + 50
-#         return offset
         b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
         offset = int.from_bytes(b, 'little', signed=True)
         offset = offset / 4095 * 100
@@ -233,15 +218,10 @@ class JOLTComputerBoard():
 
     def set_offset(self, val):
         """
-        :param val: (-5 <= float <= 5) output offset
+        :param val: (0 <= float <= 100) output offset
         :returns: (None)
         """
-        # Offset is between -5 and 5 V, scale from [0, 100]
-#         val = (val - 50) / 10
-#         if not -5 <= val <= 5:
-#             logging.error("Offset %.6f out of range -5 <= offset <= 5." % val)
-#         b = int(val * 1e6).to_bytes(4, 'little', signed=True)
-#         self._send_cmd(CMD_SET_OFFSET, b)
+        # Offset is between 0 and 4095 V, scale from [0, 100]
         val = val / 100 * 4095
         b = int(val).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_OFFSET, b)
@@ -278,8 +258,8 @@ class JOLTComputerBoard():
         return int.from_bytes(b, 'little', signed=True) * 1e-6
     
     def get_output_single_ended(self):
-
         """
+        :returns: (0 <= int <= 100): single-ended output
         """
         b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 5e6
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
@@ -288,7 +268,6 @@ class JOLTComputerBoard():
         """
         :returns: (10 <= float <= 1200) pressure in mBar
         """
-        # TODO: documentation error?
         b = self._send_query(CMD_GET_VACUUM_PRESSURE)  # 4 bytes, 10e3 - 12e6
         return int.from_bytes(b, 'little', signed=True) * 1e-3
     
@@ -311,20 +290,35 @@ class JOLTComputerBoard():
         self._send_cmd(CMD_SET_CHANNEL, b)
 
     def get_itec(self):
+        """
+        :returns (int): tec current
+        """
         b = self._send_query(CMD_GET_ITEC)  # 1 byte
         return int.from_bytes(b, 'little', signed=True)
 
     def get_error_status(self):
+        """
+        :returns (int): error status
+        """
         b = self._send_query(CMD_GET_ERROR)  # 1 byte
         return int.from_bytes(b, 'little', signed=True)
 
     def set_cb_isp_mode(self):
+        """
+        ISP mode for computer board
+        """
         self._send_cmd(CMD_CB_ISP, (235).to_bytes(1, 'little', signed=False))
         
     def set_fb_isp_mode(self):
+        """
+        ISP mode for frontend (requires frontend firmware to be present)
+        """
         self._send_cmd(CMD_FW_ISP, (235).to_bytes(1, 'little', signed=False))
 
     def set_passthrough_mode(self):
+        """
+        ISP mode for frontend if frontend doesn't contain firmware
+        """
         self._send_cmd(CMD_PASSTHROUGH_MODE, (255).to_bytes(1, 'little', signed=False))
 
     def call_auto_bc(self):
@@ -571,9 +565,6 @@ class JOLTSimulator():
         elif com == CMD_GET_FRONTEND_SERIAL_NUM:
             self._sendStatus(ACK)
             self._sendAnswer(b'SIMULATED_00000000' + 22 * b'x')
-        elif com == CMD_SET_POWER:
-            self._sendStatus(ACK)
-            self.power = arg
         elif com == CMD_GET_VOLTAGE:
             self._sendStatus(ACK)
             self._sendAnswer(self.voltage.to_bytes(4, 'little', signed=True))
@@ -635,8 +626,6 @@ class JOLTSimulator():
             # do nothing
         elif com == CMD_GET_CHANNEL_LIST:
             logging.error("not implemented")
-            #self._sendStatus(ACK)
-            #self._sendAnswer(self.channels.encode('ascii'))
         else:
             # TODO: error code
             logging.error("Unknown command %s" % com)

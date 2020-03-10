@@ -42,7 +42,7 @@ TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 POLL_INTERVAL = 1.0  # seconds
-SAVE_CONFIG = True  # safe configuration before closing
+SAVE_CONFIG = True  # save configuration before closing
 STR2CHANNEL = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B,
                "Pan": driver.CHANNEL_PAN, "OFF": driver.CHANNEL_OFF}
 CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",

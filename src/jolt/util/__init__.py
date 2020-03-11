@@ -221,13 +221,3 @@ def wxlimit_invocation(delay_s):
         wf = call_in_wx_main_wrapper(wf)
         return liwrapper(wf)
     return wxwrapper
-
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
-
-    return os.path.join(base_path, relative_path)

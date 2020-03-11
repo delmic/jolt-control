@@ -22,7 +22,7 @@ import configparser
 from jolt import driver
 import jolt
 from jolt.gui import xmlh
-from jolt.util import log, resource_path, call_in_wx_main
+from jolt.util import log, call_in_wx_main
 import logging
 import os
 from shutil import copyfile
@@ -34,6 +34,7 @@ import warnings
 from wx import xrc
 import wx
 import wx.adv
+from pkg_resources import resource_filename
 
 # Start simulator if environment variable is set
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
@@ -71,7 +72,7 @@ class JoltApp(wx.App):
         self.log_file = os.path.join(dirs.user_log_dir, 'jolt.log')  # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
         if not os.path.isdir(dirs.user_data_dir):
             os.makedirs(dirs.user_data_dir)
-            copyfile(resource_path('jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
+            copyfile(resource_filename('jolt.gui', 'jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
         if not os.path.isdir(dirs.user_log_dir):
             os.makedirs(dirs.user_log_dir)
 
@@ -168,7 +169,7 @@ class JoltApp(wx.App):
         Load the XRC GUI and connect all of the GUI controls to their event handlers
         """
         # XRC Loading
-        self.res = xrc.XmlResource(resource_path('jolt_app.xrc'))
+        self.res = xrc.XmlResource(resource_filename('jolt.gui', 'jolt_app.xrc'))
         # custom xml handler for wxSpinCtrlDouble, which is not supported officially yet
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')
@@ -252,9 +253,9 @@ class JoltApp(wx.App):
             self.dialog.SetTitle("Delmic Jolt Simulator")
 
         # Load bitmaps
-        self.bmp_off = wx.Bitmap(resource_path("img/icon_toggle_off.png"))
-        self.bmp_on = wx.Bitmap(resource_path("img/icon_toggle_on.png"))
-        self.bmp_icon = wx.Bitmap(resource_path("img/icon_jolt.png"))
+        self.bmp_off = wx.Bitmap(resource_filename('jolt.gui', "img/icon_toggle_off.png"))
+        self.bmp_on = wx.Bitmap(resource_filename('jolt.gui', "img/icon_toggle_on.png"))
+        self.bmp_icon = wx.Bitmap(resource_filename('jolt.gui', "img/icon_jolt.png"))
 
         # set icon
         icon = wx.Icon()

@@ -3,3 +3,6 @@
 *.log
 *.pyc
 *pycache*
+*.aux
+*.pdf
+*.synctex.gz

@@ -387,18 +387,19 @@ class JoltApp(wx.App):
         Enable/disable voltage changes. If disabled, set voltage to 0. 
         """
         # Toggle the HV value
-        self.hv = not self.hv
-        logging.info("Changed voltage state to: %s", self.hv)
+        if self.ctl_hv.IsEnabled():
+            self.hv = not self.hv
+            logging.info("Changed voltage state to: %s", self.hv)
 
-        if self.hv:
-            # write parameters to device
-            self.dev.set_voltage(self.voltage_gui)
-            self.spinctrl_voltage.SetForegroundColour(wx.Colour(wx.BLACK))
-        else:
-            self.dev.set_voltage(0)
-            # light grey to show it's not actually set
-            self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
-            self.spinctrl_voltage.SetValue(self.voltage_gui)
+            if self.hv:
+                # write parameters to device
+                self.dev.set_voltage(self.voltage_gui)
+                self.spinctrl_voltage.SetForegroundColour(wx.Colour(wx.BLACK))
+            else:
+                self.dev.set_voltage(0)
+                # light grey to show it's not actually set
+                self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
+                self.spinctrl_voltage.SetValue(self.voltage_gui)
         self.refresh()
 
     def on_auto_bc(self, event):
@@ -466,6 +467,7 @@ class JoltApp(wx.App):
             return bmp.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
 
         pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
+        heatsink_ok = driver.SAFERANGE_HEATSINK_TEMP[0] <= self.heat_sink_temp <= driver.SAFERANGE_HEATSINK_TEMP[1]
         if self.debug_mode or self.power:
             # enable all
             self.ctl_power.Enable(True)
@@ -478,7 +480,7 @@ class JoltApp(wx.App):
             self.slider_offset.Enable(True)
             self.spinctrl_gain.Enable(True)
             self.spinctrl_offset.Enable(True)
-        elif pressure_ok:
+        elif (pressure_ok and heatsink_ok):
             # enable power, disable rest
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(False)

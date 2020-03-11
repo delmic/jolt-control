@@ -99,9 +99,11 @@ class JoltApp(wx.App):
             dlg = wx.MessageBox("Connection to Jolt failed. Make sure the hardware is connected and turned on.",
                           'Info', wx.OK)
             logging.error("Jolt failed to start: %s", ex)
+            sys.exit(0)
             return
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
+            sys.exit(0)
             return
 
         # Get information from hardware for the log

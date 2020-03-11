@@ -1,12 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-
 block_cipher = None
 
 
 a = Analysis(['..\\..\\src\\jolt\\gui\\jolt_app.py'],
              pathex=['../../src/jolt', 'C:\\development\\jolt-engineering\\install\\windows'],
              binaries=[],
-             datas=[('../../src/jolt/gui/jolt_app.xrc', '.'), ('../../src/jolt/gui/img/*', 'img'), ('../../src/jolt/gui/jolt.ini', '.'), ('dll/api-ms-win-crt-runtime-l1-1-0.dll', '.')],
+             datas=[('../../src/jolt/gui/jolt_app.xrc', 'jolt/gui'), ('../../src/jolt/gui/img/*', 'jolt/gui/img'), ('../../src/jolt/gui/jolt.ini', 'jolt/gui'), ('dll/api-ms-win-crt-runtime-l1-1-0.dll', '.')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],

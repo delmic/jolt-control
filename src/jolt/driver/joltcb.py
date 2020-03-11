@@ -594,7 +594,7 @@ class JOLTSimulator():
             self.mppc_temp = int.from_bytes(arg, 'little', signed=True)
             self._temp_thread = threading.Thread(target=self._change_temp).start()
         elif com == CMD_GET_HOT_PLATE_TEMP:
-            self.hot_plate_temp += random.randint(-2e6, 2e6)
+            self._modify_hp_temperature()
             self._sendStatus(ACK)
             self._sendAnswer(self.hot_plate_temp.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_COLD_PLATE_TEMP:
@@ -605,8 +605,7 @@ class JOLTSimulator():
             self._sendAnswer(self.output.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_VACUUM_PRESSURE:
             self._sendStatus(ACK)
-            self.vacuum_pressure += random.randint(-5e3, 5e3)
-            self.vacuum_pressure = max(self.vacuum_pressure, 0)
+            self._modify_pressure()
             self._sendAnswer(self.vacuum_pressure.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_CHANNEL:
             self._sendStatus(ACK)
@@ -630,6 +629,13 @@ class JOLTSimulator():
             # TODO: error code
             logging.error("Unknown command %s" % com)
             self._sendStatus(NAK)
+
+    def _modify_pressure(self):
+        self.vacuum_pressure += random.randint(-5e3, 5e3)
+        self.vacuum_pressure = max(self.vacuum_pressure, 0)
+
+    def _modify_hp_temperature(self):
+        self.hot_plate_temp += random.randint(-2e6, 2e6)
 
     def _change_temp(self):
         self._stop_thread = False

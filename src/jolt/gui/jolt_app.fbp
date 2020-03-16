@@ -467,7 +467,7 @@
                                 <property name="resize">Resizable</property>
                                 <property name="show">1</property>
                                 <property name="size">85,-1</property>
-                                <property name="style">wxSP_ARROW_KEYS</property>
+                                <property name="style">wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</property>
                                 <property name="subclass">; ; forward_declare</property>
                                 <property name="toolbar_pane">0</property>
                                 <property name="tooltip"></property>
@@ -906,7 +906,7 @@
                                         <property name="resize">Resizable</property>
                                         <property name="show">1</property>
                                         <property name="size">75,-1</property>
-                                        <property name="style">wxALIGN_LEFT|wxSP_ARROW_KEYS</property>
+                                        <property name="style">wxALIGN_LEFT|wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</property>
                                         <property name="subclass">; ; forward_declare</property>
                                         <property name="toolbar_pane">0</property>
                                         <property name="tooltip"></property>
@@ -1157,7 +1157,7 @@
                                         <property name="resize">Resizable</property>
                                         <property name="show">1</property>
                                         <property name="size">75,-1</property>
-                                        <property name="style">wxSP_ARROW_KEYS</property>
+                                        <property name="style">wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</property>
                                         <property name="subclass">; ; forward_declare</property>
                                         <property name="toolbar_pane">0</property>
                                         <property name="tooltip"></property>

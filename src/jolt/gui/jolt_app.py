@@ -37,7 +37,7 @@ import wx.adv
 from pkg_resources import resource_filename
 
 # Start simulator if environment variable is set
-TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
+TEST_NOHW = 1#(os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
@@ -130,6 +130,7 @@ class JoltApp(wx.App):
         # Don't write voltage to device yet, but show value in the gui
         self.spinctrl_voltage.SetValue(self.voltage_gui)
         self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
+        self.refresh()
 
     def load_config(self):
         """
@@ -213,6 +214,7 @@ class JoltApp(wx.App):
         # voltage
         self.spinctrl_voltage = xrc.XRCCTRL(self.dialog, 'spn_voltage')
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_voltage_value, id=xrc.XRCID('spn_voltage'))
+        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_voltage_value, id=xrc.XRCID('spn_voltage'))
 
         # gain and offset
         self.slider_gain = xrc.XRCCTRL(self.dialog, 'slider_gain')
@@ -223,6 +225,8 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_SCROLL, self.on_offset_slider, id=xrc.XRCID('slider_offset'))
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_gain_spin, id=xrc.XRCID('spin_gain'))
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_offset_spin, id=xrc.XRCID('spin_offset'))
+        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_gain_spin, id=xrc.XRCID('spn_gain'))
+        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_offset_spin, id=xrc.XRCID('spn_offset'))
 
         # channel selection
         self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
@@ -412,7 +416,7 @@ class JoltApp(wx.App):
         """
         Set voltage if voltage change enabled, otherwise ignore.
         """
-        self.voltage_gui = event.GetValue()
+        self.voltage_gui = self.spinctrl_voltage.GetValue()
         if self.hv:
             logging.debug("Changed voltage to %s", self.voltage_gui)
             self.dev.set_voltage(self.voltage_gui)
@@ -440,7 +444,7 @@ class JoltApp(wx.App):
         event.Skip()
 
     def on_gain_spin(self, event):
-        gain = event.GetValue()
+        gain = self.spinctrl_gain.GetValue()
         self.slider_gain.SetValue(int(gain))
         self.dev.set_gain(gain)
         logging.debug("Changed gain to %s", gain)
@@ -448,7 +452,7 @@ class JoltApp(wx.App):
         event.Skip()
 
     def on_offset_spin(self, event):
-        offset = event.GetValue()
+        offset = self.spinctrl_offset.GetValue()
         self.slider_offset.SetValue(int(offset))
         self.dev.set_offset(offset)
         logging.debug("Changed offset to %s", offset)
@@ -552,6 +556,7 @@ class JoltApp(wx.App):
         # is a good chance that the textbox is going to be updated when we're not actively writing in it
         # (this last point is implemented in the event callback functions).
         focus = self.dialog.FindFocus()
+        print(focus, self.spinctrl_offset)
         for ctrl, val in [(self.spinctrl_gain, self.gain), (self.spinctrl_offset, self.offset)]:
             if not focus == ctrl:
                 ctrl.SetValue(val)

@@ -1,0 +1,7 @@
+pyinstaller
+wxpython
+appdirs
+decorator
+pyserial
+timeout_decorator
+click

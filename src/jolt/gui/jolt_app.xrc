@@ -105,7 +105,7 @@
 						<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
 						<border>5</border>
 						<object class="wxSpinCtrlDouble" name="spn_voltage">
-							<style>wxSP_ARROW_KEYS</style>
+							<style>wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
 							<size>85,-1</size>
 							<value>3.600000</value>
 							<min>0</min>
@@ -215,7 +215,7 @@
 								<flag>wxALL|wxALIGN_RIGHT</flag>
 								<border>5</border>
 								<object class="wxSpinCtrlDouble" name="spin_gain">
-									<style>wxALIGN_LEFT|wxSP_ARROW_KEYS</style>
+									<style>wxALIGN_LEFT|wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
 									<size>75,-1</size>
 									<value>1.000000</value>
 									<min>0</min>
@@ -259,7 +259,7 @@
 								<flag>wxALL|wxALIGN_BOTTOM</flag>
 								<border>5</border>
 								<object class="wxSpinCtrlDouble" name="spin_offset">
-									<style>wxSP_ARROW_KEYS</style>
+									<style>wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
 									<size>75,-1</size>
 									<value>50</value>
 									<min>0</min>

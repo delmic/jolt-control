@@ -37,7 +37,7 @@ import wx.adv
 from pkg_resources import resource_filename
 
 # Start simulator if environment variable is set
-TEST_NOHW = 1#(os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
+TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
@@ -568,9 +568,9 @@ class JoltApp(wx.App):
             focus_name = ""
         for ctrl, val in [(self.spinctrl_gain, self.gain), (self.spinctrl_offset, self.offset)]:
             if focus != ctrl and focus_name != 'text':
-                ctrl.SetValue(val)
+                ctrl.SetValue(round(float(val), 1))
         if self.hv and focus != self.spinctrl_voltage and focus_name != 'text':
-            self.spinctrl_voltage.SetValue(self.voltage)
+            self.spinctrl_voltage.SetValue(round(float(self.voltage), 2))
 
         # Grey out value in voltage control if voltage button is off.
         # In this case, the actual voltage will be 0, but we still want the previous

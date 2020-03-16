@@ -225,8 +225,8 @@ class JoltApp(wx.App):
         self.dialog.Bind(wx.EVT_SCROLL, self.on_offset_slider, id=xrc.XRCID('slider_offset'))
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_gain_spin, id=xrc.XRCID('spin_gain'))
         self.dialog.Bind(wx.EVT_SPINCTRLDOUBLE, self.on_offset_spin, id=xrc.XRCID('spin_offset'))
-        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_gain_spin, id=xrc.XRCID('spn_gain'))
-        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_offset_spin, id=xrc.XRCID('spn_offset'))
+        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_gain_spin, id=xrc.XRCID('spin_gain'))
+        self.dialog.Bind(wx.EVT_TEXT_ENTER, self.on_offset_spin, id=xrc.XRCID('spin_offset'))
 
         # channel selection
         self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
@@ -556,18 +556,40 @@ class JoltApp(wx.App):
         # is a good chance that the textbox is going to be updated when we're not actively writing in it
         # (this last point is implemented in the event callback functions).
         focus = self.dialog.FindFocus()
-        print(focus, self.spinctrl_offset)
+        # All controls will be disabled except the one that's in focus. However, on Windows,
+        # the FindFocus() returns a textcontrol object for the spincontrols, so it's not possible
+        # to compare them directly (bug in wxpython?). It turns out that the name of this textcontrol
+        # inside the spincontrol is always 'text', so we can test for that instead. The result is not
+        # perfect, we're now also not updating other spincontrols while typing in one, but
+        # this should not be a big issue for now.
+        try:
+            focus_name = focus.GetName()
+        except:
+            focus_name = ""
         for ctrl, val in [(self.spinctrl_gain, self.gain), (self.spinctrl_offset, self.offset)]:
-            if not focus == ctrl:
+            if focus != ctrl and focus_name != 'text':
                 ctrl.SetValue(val)
-        if self.hv and focus != self.spinctrl_voltage:
+        if self.hv and focus != self.spinctrl_voltage and focus_name != 'text':
             self.spinctrl_voltage.SetValue(self.voltage)
+
+        # Grey out value in voltage control if voltage button is off.
+        # In this case, the actual voltage will be 0, but we still want the previous
+        # voltage to be shown, so it's easy to turn it back on again.
+        if self.hv:
+            self.spinctrl_voltage.SetForegroundColour(wx.BLACK)
+        elif not self.hv and focus != self.spinctrl_voltage and focus_name != 'text':
+            self.spinctrl_voltage.SetForegroundColour((211, 211, 211))  # light grey
+            # Colour is only updated if text is changed, so quickly change to value
+            # that is never reached (only in the gui of course) and back, so it's never
+            # noticed.
+            self.spinctrl_voltage.SetValue(100)
+            self.spinctrl_voltage.SetValue(self.voltage_gui)
 
         # Check the error status
         if self.error != 8:
             if not self.error in self.error_codes:
                 msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.error,),
-                                                 parent=self.dialog,flags=wx.ICON_ERROR)
+                                                 parent=self.dialog, flags=wx.ICON_ERROR)
                 msg.Show()
 
             # this way, the warning message is only displayed when the warning first occurs

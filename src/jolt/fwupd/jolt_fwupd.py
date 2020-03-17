@@ -89,7 +89,9 @@ class FirmwareUpdater(wx.App):
 
     def OnInit(self, *args, **kwargs):
         # XRC Loading
-        self.res = xrc.XmlResource(resource_filename('jolt.fwupd', 'fw_updater.xrc'))
+        # For some reason resource_filename('jolt.fwupd', 'fw_updater.xrc') does not
+        # work. It works fine in the JoltApp, but not here.
+        self.res = xrc.XmlResource(resource_filename('jolt', 'fwupd/fw_updater.xrc'))
         self.dialog = self.res.LoadDialog(None, 'MyDialog1')
         
         self.upload_btn = xrc.XRCCTRL(self.dialog, 'upload_button')

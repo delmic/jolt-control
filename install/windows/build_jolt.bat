@@ -1,4 +1,4 @@
 setlocal
-set PYTHONPATH=C:\Development\jolt\src\
-python C:\development\jolt-engineering\install\windows\build.py
+set PYTHONPATH=C:\development\jolt-control\src\;%PYTHONPATH%
+python C:\development\jolt-control\install\windows\build.py
 endlocal

@@ -1,4 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
+import jolt
+import platform
+
 block_cipher = None
 
 
@@ -21,7 +24,7 @@ exe = EXE(pyz,
 		  a.binaries,
           a.zipfiles,
           a.datas,
-          name='Jolt',
+          name='Jolt-v%s-win%s' % (jolt.__version__, platform.release()),
           debug=False,
           strip=False,
           upx=True,

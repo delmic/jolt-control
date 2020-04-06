@@ -615,13 +615,13 @@ class JoltApp(wx.App):
                 self.channel = CHANNEL2STR[self.dev.get_channel()]
                 self.mppc_temp = self.dev.get_cold_plate_temp()
                 self.heat_sink_temp = self.dev.get_hot_plate_temp()
-                self.pressure = self.dev.get_vacuum_pressure()
+                self.vacuum_pressure = self.dev.get_vacuum_pressure()
                 self.error = self.dev.get_error_status()
                 self.itec = self.dev.get_itec()
 
                 logging.info("Gain: %.2f, offset: %.2f, channel: %s, temperature: %.2f, sink temperature: %.2f, " +
                              "pressure: %.2f, voltage: %.2f, output: %.2f, error state: %d, Tec current: %s", self.gain, self.offset,
-                             self.channel, self.mppc_temp, self.heat_sink_temp, self.pressure, self.voltage, self.output,
+                             self.channel, self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.voltage, self.output,
                              self.error, self.itec)
 
                 # Refresh gui with these values

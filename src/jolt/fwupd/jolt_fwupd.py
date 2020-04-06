@@ -151,22 +151,21 @@ class FirmwareUpdater(wx.App):
         cb_success = True
         fb_success = True
         if self.compboard_isempty:
-            while True:
-                if os.name == "nt":
-                    ports = list(serial.tools.list_ports.comports())
-                    for p in ports:
-                        print(p)
-                else:
-                    ports = glob.glob("/dev/ttyUSB*")
-                    
-                if len(ports) > 1:
-                    # make sure we don't upload firmware to wrong device
-                    self.display_msg_dialog("Multiple serial ports detected. Remove all other USB devices and try again.", 'Warning', wx.OK | wx.CANCEL | wx.ICON_WARNING)
-                    continue
-                else:
-                    self.portname = ports[0]
-                    self.serial = Serial(ports[0], baudrate=9600, xonxoff=False)
-                    break
+            if os.name == "nt":
+                ports = [p[0] for p in serial.tools.list_ports.comports()]  # first element contains name ("COM1")
+            else:
+                ports = glob.glob("/dev/ttyUSB*")
+
+            if len(ports) == 0:
+                print("No device found.")
+                return
+            elif len(ports) > 1:
+                # make sure we don't upload firmware to wrong device
+                self.display_msg_dialog("Multiple serial ports detected. Remove all other USB devices and try again.", 'Warning', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+                return
+            else:
+                self.portname = ports[0]
+                self.serial = Serial(ports[0], baudrate=9600, xonxoff=False)
 
         if self.file_cb:
             cb_success = False

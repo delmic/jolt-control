@@ -25,6 +25,7 @@ import time
 import threading
 import random
 import glob
+from serial.tools.list_ports import comports
 
 
 SOH = chr(0x01).encode('latin1')  # chr(0x01).encode('latin1')  # start of header
@@ -368,7 +369,7 @@ class JOLTComputerBoard():
             return serial
 
         if os.name == "nt":
-            ports = ["COM1", "COM2", "COM3", "COM4", "COM5", "COM6"]
+            ports = list(comports())
         else:
             ports = glob.glob("/dev/ttyUSB*")
  

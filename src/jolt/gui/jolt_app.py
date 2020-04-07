@@ -78,7 +78,7 @@ class JoltApp(wx.App):
 
         # Initialize values
         self.voltage, self.gain, self.offset, self.channel = self.load_config()
-        self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure = (0, 0, 0)
+        self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.output = (0, 0, 0, 0)
         self.error = 8  # 8 means no error
         self.target_temp = 24
         self.voltage_gui = self.voltage
@@ -287,6 +287,12 @@ class JoltApp(wx.App):
         self.refresh()
         event.Skip()
 
+        # Change maximum voltage in debug mode (too high voltage can hurt the system if it's not covered)
+        if self.debug_mode:
+            self.spinctrl_voltage.SetMax(52)  # just enough to get signal
+        else:
+            self.spinctrl_voltage.SetMax(70)  # as usual
+
     def check_saferange(self, textctrl, val, srange, name, t=None):
         """
         Checks if a value is in the defined safe range and displays it in the corresponding colour
@@ -354,7 +360,7 @@ class JoltApp(wx.App):
                 except:
                     # connection lost, device already turned off
                     dlg = wx.MessageDialog(None, "Failed to power down device, connection lost.", 'Notice',
-                                     wx.OK | wx.CANCEL | wx.ICON_WARNING)
+                                     wx.OK | wx.ICON_WARNING)
                     dlg.ShowModal()
             else:
                 return  # Cancel closing

@@ -349,7 +349,13 @@ class JoltApp(wx.App):
  
             if result == wx.ID_OK:
                 logging.info("Powering down Jolt...")
-                self.dev.set_target_mppc_temp(24)
+                try:
+                    self.dev.set_target_mppc_temp(24)
+                except:
+                    # connection lost, device already turned off
+                    dlg = wx.MessageDialog(None, "Failed to power down device, connection lost.", 'Notice',
+                                     wx.OK | wx.CANCEL | wx.ICON_WARNING)
+                    dlg.ShowModal()
             else:
                 return  # Cancel closing
 

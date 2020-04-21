@@ -385,7 +385,7 @@ class JoltApp(wx.App):
                 if self.debug_mode:
                     self.target_temp = 15
                 else:
-                    self.target_temp = -10
+                    self.target_temp = 0
             else:
                 self.target_temp = 24
             self.dev.set_target_mppc_temp(self.target_temp)

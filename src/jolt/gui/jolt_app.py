@@ -115,6 +115,14 @@ class JoltApp(wx.App):
         logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
         logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
 
+        # Check frontend board connection
+        if "Unknown" in self.dev.get_fe_fw_version():
+            dlg = wx.MessageBox("Problem connecting to the frontend board. Verify that the control box is connected " +
+                                "properly and cycle the power. It this warning persists, please contact Delmic support.",
+                                'Info', wx.OK)
+            sys.exit(0)
+            return
+
         # Set hw output to single-ended
         self.dev.set_signal_type(single_ended=True)
 

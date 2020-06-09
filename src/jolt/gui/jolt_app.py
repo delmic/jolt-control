@@ -549,7 +549,7 @@ class JoltApp(wx.App):
         else:
             self.txtbox_vacuumPressure.SetValue("vented")
         # Check ranges, create notification if necessary
-        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp - 1, self.target_temp + 1], "MPCC Temperature", time.time())
+        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp - 1, self.target_temp + 1], "MPPC Temperature", time.time())
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
         self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 

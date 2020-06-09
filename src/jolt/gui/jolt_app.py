@@ -115,6 +115,14 @@ class JoltApp(wx.App):
         logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
         logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
 
+        # Check frontend board connection
+        if "Unknown" in self.dev.get_fe_fw_version():
+            dlg = wx.MessageBox("Problem connecting to the frontend board. Verify that the control box is connected " +
+                                "properly and cycle the power. It this warning persists, please contact Delmic support.",
+                                'Info', wx.OK)
+            sys.exit(0)
+            return
+
         # Set hw output to single-ended
         self.dev.set_signal_type(single_ended=True)
 
@@ -318,7 +326,7 @@ class JoltApp(wx.App):
             if not t:
                 textctrl.SetForegroundColour(wx.RED)
                 # this way, the warning message is only displayed when the warning first occurs
-                if name not in self.warnings:
+                if name not in self.warnings and not self.error_codes:  # don't show warning in case of error code, so it doesn't hide it
                     self.warnings.add(name)
                     msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
                                                      flags=wx.ICON_WARNING)
@@ -334,7 +342,7 @@ class JoltApp(wx.App):
             elif time.time() >= self.attrs_to_watch[name] + 60:
                 textctrl.SetForegroundColour(wx.RED)
                 # this way, the warning message is only displayed when the warning first occurs
-                if name not in self.warnings:
+                if name not in self.warnings and not self.error_codes: # don't show warning in case of error code, so it doesn't hide it
                     self.warnings.add(name)
                     msg = wx.adv.NotificationMessage("DELMIC JOLT", message="%s is outside of the safe range of operation." % (name,), parent=self.dialog,
                                                      flags=wx.ICON_WARNING)
@@ -486,7 +494,7 @@ class JoltApp(wx.App):
 
         pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
         heatsink_ok = driver.SAFERANGE_HEATSINK_TEMP[0] <= self.heat_sink_temp <= driver.SAFERANGE_HEATSINK_TEMP[1]
-        if self.debug_mode or self.power:
+        if (self.debug_mode or self.power) and not self.error_codes:
             # enable all
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(True)
@@ -498,7 +506,7 @@ class JoltApp(wx.App):
             self.slider_offset.Enable(True)
             self.spinctrl_gain.Enable(True)
             self.spinctrl_offset.Enable(True)
-        elif (pressure_ok and heatsink_ok):
+        elif (pressure_ok and heatsink_ok) and not self.error_codes:
             # enable power, disable rest
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(False)
@@ -539,6 +547,22 @@ class JoltApp(wx.App):
         """
         Refreshes the GUI display values
         """
+        # Check the error status
+        if self.error != 8:
+            if not self.error in self.error_codes:
+                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d." % (self.error,) +
+                                                 " Verify that the control box is connected " +
+                                                 "properly and cycle the power",
+                                                 parent=self.dialog, flags=wx.ICON_ERROR)
+                if self.power:  # and not self.debug_mode:
+                    self.toggle_power()
+                msg.Show()
+            # this way, the warning message is only displayed when the warning first occurs
+            self.error_codes.add(self.error)
+        else:
+            # errors cleared
+            self.error_codes.clear()
+
         # Show settings for temperature, pressure etc
         self.txtbox_output.SetValue("%.2f" % self.output)
         self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
@@ -596,19 +620,6 @@ class JoltApp(wx.App):
             # noticed.
             self.spinctrl_voltage.SetValue(100)
             self.spinctrl_voltage.SetValue(self.voltage_gui)
-
-        # Check the error status
-        if self.error != 8:
-            if not self.error in self.error_codes:
-                msg = wx.adv.NotificationMessage("DELMIC JOLT", message="Jolt reports error code %d" % (self.error,),
-                                                 parent=self.dialog, flags=wx.ICON_ERROR)
-                msg.Show()
-
-            # this way, the warning message is only displayed when the warning first occurs
-            self.error_codes.add(self.error)
-        else:
-            # errors cleared
-            self.error_codes.clear()
 
         # Update controls
         self.update_controls()

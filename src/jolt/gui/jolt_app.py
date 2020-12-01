@@ -77,7 +77,7 @@ class JoltApp(wx.App):
             os.makedirs(dirs.user_log_dir)
 
         # Initialize values
-        self.voltage, self.gain, self.offset, self.channel = self.load_config()
+        self.voltage, self.gain, self.offset, self.channel, self.ambient = self.load_config()
         self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.output = (0, 0, 0, 0)
         self.error = 8  # 8 means no error
         self.target_temp = 24
@@ -143,7 +143,8 @@ class JoltApp(wx.App):
     def load_config(self):
         """
         Reads configuration file
-        :returns: (float, float, float, str): voltage, gain, offset, channel
+        :returns: (float, float, float, str, bool): voltage, gain, offset, channel, ambient (if ambient is True,
+        the device is only cooling down to 15 degrees and the pressure is left unchecked)
         """
         self.config = configparser.ConfigParser()
         logging.debug("Reading configuration file %s", self.config_file)
@@ -153,12 +154,13 @@ class JoltApp(wx.App):
             gain = self.config.getfloat('DEFAULT', 'gain')
             offset = self.config.getfloat('DEFAULT', 'offset')
             channel = self.config.get('DEFAULT', 'channel')
+            ambient = self.config.get('DEFAULT', 'ambient', fallback=False)
         except Exception as ex:
             logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
-            voltage, gain, offset, channel = (0.0, 0.0, 0.0, "R")
+            voltage, gain, offset, channel, ambient = (0.0, 0.0, 0.0, "R", False)
         if channel not in ["R", "G", "B", "Pan"]:
             channel = "R"
-        return voltage, gain, offset, channel
+        return voltage, gain, offset, channel, ambient
 
     def save_config(self):
         """
@@ -390,7 +392,7 @@ class JoltApp(wx.App):
             self.power = not self.power
             logging.info("Changed power state to: %s", self.power)
             if self.power:
-                if self.debug_mode:
+                if self.debug_mode or self.ambient:
                     self.target_temp = 15
                 else:
                     self.target_temp = 0
@@ -506,8 +508,9 @@ class JoltApp(wx.App):
             self.slider_offset.Enable(True)
             self.spinctrl_gain.Enable(True)
             self.spinctrl_offset.Enable(True)
-        elif (pressure_ok and heatsink_ok) and not self.error_codes:
+        elif (pressure_ok or self.ambient) and heatsink_ok and not self.error_codes:
             # enable power, disable rest
+            # don't care about pressure in ambient mode
             self.ctl_power.Enable(True)
             self.ctl_hv.Enable(False)
             self.ctl_power.SetBitmap(self.bmp_on if self.power else self.bmp_off)
@@ -575,7 +578,9 @@ class JoltApp(wx.App):
         # Check ranges, create notification if necessary
         self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp - 1, self.target_temp + 1], "MPPC Temperature", time.time())
         self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
-        self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
+        if not self.ambient:
+            # don't care about pressure in ambient mode
+            self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
 
         # Modify controls to show hardware values
         ch2sel = {"R": 0, "G": 1, "B": 2, "Pan": 3}

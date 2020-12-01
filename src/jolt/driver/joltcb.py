@@ -38,7 +38,7 @@ ID_STATUS = chr(0x53).encode('latin1')  # packet identifier command
 ID_ASCII = chr(0x4D).encode('latin1')  # packet identifier ascii message
 ID_BIN = chr(0x04).encode('latin1')  # packet identifier binary message
 
-ERROR_CODE = chr(0x59).encode('latin1')  # TODO
+ERROR_CODE = chr(0x8).encode('latin1')  # for the simulator, 8 means everything OK
 
 CMD_GET_VERSION = 0x60
 CMD_GET_FIRMWARE_VER = 0x61

@@ -16,6 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
+from collections import OrderedDict
 
 from appdirs import AppDirs
 import configparser
@@ -49,6 +50,12 @@ STR2CHANNEL = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL
 CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
                 driver.CHANNEL_PAN: "Pan", driver.CHANNEL_OFF: "OFF"}
 
+MPPC_TEMP_POWER_OFF = 24  # degrees in °C
+MPPC_TEMP_DEBUG = 15   # degrees in °C
+MPPC_TEMP_POWER_ON = -10  # degrees in °C
+MPPC_TEMP_REL = (-1, 1)
+
+
 class JoltApp(wx.App):
     """
     The Jolt Control Window Application
@@ -76,9 +83,16 @@ class JoltApp(wx.App):
         if not os.path.isdir(dirs.user_log_dir):
             os.makedirs(dirs.user_log_dir)
 
+        self.config = None
         # Initialize values
-        self.voltage, self.gain, self.offset, self.channel = self.load_config()
+        self.voltage, self.gain, self.offset, self.channel = self.load_config(section='DEFAULT')
         self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure = (0, 0, 0)
+        # Get the target mppc temperature from the configuration file if provided,
+        # otherwise use the default one.
+        self.target_mppc_temp = self.load_config(section='TARGET')
+        # Get the threshold values from the configuration file if provided, otherwise use the default ones.
+        self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
+            self.load_config(section='SAFERANGE')
         self.error = 8  # 8 means no error
         self.target_temp = 24
         self.voltage_gui = self.voltage
@@ -132,25 +146,50 @@ class JoltApp(wx.App):
         self.spinctrl_voltage.SetForegroundColour((211, 211, 211))
         self.refresh()
 
-    def load_config(self):
+    def load_config(self, section):
         """
         Reads configuration file
-        :returns: (float, float, float, str): voltage, gain, offset, channel
+        :returns: (float, float, float, str): voltage, gain, offset, channel if section 'DEFAULT'
+                  (float): mppc_temp if section 'TARGET'
+                  (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure if
+                  section 'SAFERANGE'
         """
-        self.config = configparser.ConfigParser()
-        logging.debug("Reading configuration file %s", self.config_file)
+        self.config = configparser.ConfigParser(dict_type=OrderedDict)
         self.config.read(self.config_file)
-        try:
-            voltage = self.config.getfloat('DEFAULT', 'voltage')
-            gain = self.config.getfloat('DEFAULT', 'gain')
-            offset = self.config.getfloat('DEFAULT', 'offset')
-            channel = self.config.get('DEFAULT', 'channel')
-        except Exception as ex:
-            logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
-            voltage, gain, offset, channel = (0.0, 0.0, 0.0, "R")
-        if channel not in ["R", "G", "B", "Pan"]:
-            channel = "R"
-        return voltage, gain, offset, channel
+        if section is 'DEFAULT':
+            try:
+                voltage = self.config.getfloat('DEFAULT', 'voltage')
+                gain = self.config.getfloat('DEFAULT', 'gain')
+                offset = self.config.getfloat('DEFAULT', 'offset')
+                channel = self.config.get('DEFAULT', 'channel')
+            except Exception as ex:
+                logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+                voltage, gain, offset, channel = (0.0, 0.0, 0.0, "R")
+            if channel not in ["R", "G", "B", "Pan"]:
+                channel = "R"
+            return voltage, gain, offset, channel
+        elif section is 'TARGET':
+            try:
+                mppc_temp = self.config.getint('TARGET', 'mppc_temp')
+            except Exception as ex:
+                logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+                mppc_temp = MPPC_TEMP_POWER_ON
+            return mppc_temp
+        elif section is 'SAFERANGE':
+            try:
+                mppc_temp_rel = self.config.get('SAFERANGE', 'mppc_temp_rel')
+                heatsink_temp = self.config.get('SAFERANGE', 'heatsink_temp')
+                mppc_current = self.config.get('SAFERANGE', 'mppc_current')
+                vacuum_pressure = self.config.get('SAFERANGE', 'vacuum_pressure')
+            except Exception as ex:
+                logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+                mppc_temp_rel = MPPC_TEMP_REL
+                heatsink_temp = driver.SAFERANGE_HEATSINK_TEMP
+                mppc_current = driver.SAFERANGE_MPCC_CURRENT
+                vacuum_pressure = driver.SAFERANGE_VACUUM_PRESSURE
+            return mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure
+        else:
+            logging.error("No available section with name %s in the configuration file", section)
 
     def save_config(self):
         """
@@ -371,11 +410,11 @@ class JoltApp(wx.App):
             logging.info("Changed power state to: %s", self.power)
             if self.power:
                 if self.debug_mode:
-                    self.target_temp = 15
+                    self.target_temp = MPPC_TEMP_DEBUG
                 else:
-                    self.target_temp = -10
+                    self.target_temp = self.target_mppc_temp
             else:
-                self.target_temp = 24
+                self.target_temp = MPPC_TEMP_POWER_OFF
             self.dev.set_target_mppc_temp(self.target_temp)
 
         # Turn voltage off if device is not powered on
@@ -472,8 +511,8 @@ class JoltApp(wx.App):
             # can be converted to greyscale and then convert it back to a bitmap.
             return bmp.ConvertToImage().ConvertToGreyscale().ConvertToDisabled().ConvertToBitmap()
 
-        pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
-        heatsink_ok = driver.SAFERANGE_HEATSINK_TEMP[0] <= self.heat_sink_temp <= driver.SAFERANGE_HEATSINK_TEMP[1]
+        pressure_ok = self.saferange_vacuum_pressure[0] <= self.vacuum_pressure <= self.saferange_vacuum_pressure[1]
+        heatsink_ok = self.saferange_sink_temp[0] <= self.heat_sink_temp <= self.saferange_sink_temp[1]
         if self.debug_mode or self.power:
             # enable all
             self.ctl_power.Enable(True)
@@ -529,17 +568,17 @@ class JoltApp(wx.App):
         """
         # Show settings for temperature, pressure etc
         self.txtbox_output.SetValue("%.2f" % self.output)
-        self.txtbox_MPPCTemp.SetValue("%.1f" %  self.mppc_temp)
+        self.txtbox_MPPCTemp.SetValue("%.1f" % self.mppc_temp)
         self.txtbox_sinkTemp.SetValue("%.1f" % self.heat_sink_temp)
-        pressure_ok = driver.SAFERANGE_VACUUM_PRESSURE[0] <= self.vacuum_pressure <= driver.SAFERANGE_VACUUM_PRESSURE[1]
+        pressure_ok = self.saferange_vacuum_pressure[0] <= self.vacuum_pressure <= self.saferange_vacuum_pressure[1]
         if pressure_ok:
             self.txtbox_vacuumPressure.SetValue("vacuum")
         else:
             self.txtbox_vacuumPressure.SetValue("vented")
         # Check ranges, create notification if necessary
-        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp - 1, self.target_temp + 1], "MPCC Temperature", time.time())
-        self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, driver.SAFERANGE_HEATSINK_TEMP, "Heat Sink Temperature")
-        self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, driver.SAFERANGE_VACUUM_PRESSURE,"Vacuum Pressure")
+        self.check_saferange(self.txtbox_MPPCTemp, self.mppc_temp, [self.target_temp + self.mppc_temp_rel[0], self.target_temp + self.mppc_temp_rel[1]], "MPCC Temperature", time.time())
+        self.check_saferange(self.txtbox_sinkTemp, self.heat_sink_temp, self.saferange_sink_temp, "Heat Sink Temperature")
+        self.check_saferange(self.txtbox_vacuumPressure, self.vacuum_pressure, self.saferange_vacuum_pressure, "Vacuum Pressure")
 
         # Modify controls to show hardware values
         ch2sel = {"R": 0, "G": 1, "B": 2, "Pan": 3}

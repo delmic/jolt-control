@@ -154,8 +154,10 @@ class JoltApp(wx.App):
                   (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure if
                   section 'SAFERANGE'
         """
-        self.config = configparser.ConfigParser(dict_type=OrderedDict)
-        self.config.read(self.config_file)
+        if self.config is None:
+            self.config = configparser.ConfigParser(dict_type=OrderedDict)
+            logging.debug("Reading configuration file %s", self.config_file)
+            self.config.read(self.config_file)
         if section is 'DEFAULT':
             try:
                 voltage = self.config.getfloat('DEFAULT', 'voltage')

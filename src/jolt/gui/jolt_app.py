@@ -53,7 +53,7 @@ CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "
 MPPC_TEMP_POWER_OFF = 24  # degrees in °C
 MPPC_TEMP_DEBUG = 15   # degrees in °C
 MPPC_TEMP_POWER_ON = -10  # degrees in °C
-MPPC_TEMP_REL = (-1, 1)
+MPPC_TEMP_REL = (-1, 1)  # temperature range, relative to the target temperature, in °C
 
 
 class JoltApp(wx.App):
@@ -196,7 +196,7 @@ class JoltApp(wx.App):
                 vacuum_pressure = driver.SAFERANGE_VACUUM_PRESSURE
             return mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure
         else:
-            logging.error("No available section with name %s in the config file", section)
+            raise ValueError("No available section with name %s in the config file", section)
 
     def get_tuple(section, option):
         return tuple(int(k.strip()) for k in option[1:-1].split(','))

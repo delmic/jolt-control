@@ -1,0 +1,11 @@
+wxpython<4.1.0
+timeout_decorator
+decorator
+pyserial<4.0
+click<=8.0
+appdirs
+# needed by appdirs, on Windows
+pywin32
+pyinstaller==4.2
+# needed by pyinstaller, on Windows
+pywin32-ctypes

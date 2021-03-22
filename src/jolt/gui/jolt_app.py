@@ -53,7 +53,11 @@ CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "
 MPPC_TEMP_POWER_OFF = 24  # degrees in °C
 MPPC_TEMP_DEBUG = 15   # degrees in °C
 MPPC_TEMP_POWER_ON = -10  # degrees in °C
+<<<<<<< HEAD
 MPPC_TEMP_REL = (-1, 1)
+=======
+MPPC_TEMP_REL = (-1, 1)  # temperature range, relative to the target temperature, in °C
+>>>>>>> db07fb19bc62317ea92b7228cbeb189ab1baa97f
 
 
 class JoltApp(wx.App):
@@ -154,6 +158,7 @@ class JoltApp(wx.App):
                   (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure if
                   section 'SAFERANGE'
         """
+<<<<<<< HEAD
         self.config = configparser.ConfigParser(dict_type=OrderedDict)
         self.config.read(self.config_file)
         if section is 'DEFAULT':
@@ -164,36 +169,80 @@ class JoltApp(wx.App):
                 channel = self.config.get('DEFAULT', 'channel')
             except Exception as ex:
                 logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+=======
+        if self.config is None:
+            self.config = configparser.ConfigParser(converters={'tuple': self.get_tuple})
+            logging.debug("Reading configuration file %s", self.config_file)
+            self.config.read(self.config_file)
+        if section is 'DEFAULT':
+            try:
+                voltage = self.config.getfloat('DEFAULT', 'voltage', fallback=0.0)
+                gain = self.config.getfloat('DEFAULT', 'gain', fallback=0.0)
+                offset = self.config.getfloat('DEFAULT', 'offset', fallback=0.0)
+                channel = self.config.get('DEFAULT', 'channel', fallback="R")
+            except Exception as ex:
+                logging.error("Invalid given values, falling back to default values, ex: %s", ex)
+>>>>>>> db07fb19bc62317ea92b7228cbeb189ab1baa97f
                 voltage, gain, offset, channel = (0.0, 0.0, 0.0, "R")
             if channel not in ["R", "G", "B", "Pan"]:
                 channel = "R"
             return voltage, gain, offset, channel
         elif section is 'TARGET':
             try:
+<<<<<<< HEAD
                 mppc_temp = self.config.getint('TARGET', 'mppc_temp')
             except Exception as ex:
                 logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+=======
+                mppc_temp = self.config.getint('TARGET', 'mppc_temp', fallback=MPPC_TEMP_POWER_ON)
+            except Exception as ex:
+                logging.error("Invalid TARGET mppc temperature, an integer expected, "
+                              "falling back to default values, ex: %s", ex)
+>>>>>>> db07fb19bc62317ea92b7228cbeb189ab1baa97f
                 mppc_temp = MPPC_TEMP_POWER_ON
             return mppc_temp
         elif section is 'SAFERANGE':
             try:
+<<<<<<< HEAD
                 mppc_temp_rel = self.config.get('SAFERANGE', 'mppc_temp_rel')
                 heatsink_temp = self.config.get('SAFERANGE', 'heatsink_temp')
                 mppc_current = self.config.get('SAFERANGE', 'mppc_current')
                 vacuum_pressure = self.config.get('SAFERANGE', 'vacuum_pressure')
             except Exception as ex:
                 logging.error("Invalid or missing configuration file, falling back to default values, ex: %s", ex)
+=======
+                mppc_temp_rel = self.config.gettuple('SAFERANGE', 'mppc_temp_rel', fallback=MPPC_TEMP_REL)
+                heatsink_temp = self.config.gettuple('SAFERANGE', 'heatsink_temp',
+                                                     fallback=driver.SAFERANGE_HEATSINK_TEMP)
+                mppc_current = self.config.gettuple('SAFERANGE', 'mppc_current',
+                                                    fallback=driver.SAFERANGE_MPCC_CURRENT)
+                vacuum_pressure = self.config.gettuple('SAFERANGE', 'vacuum_pressure',
+                                                       fallback=driver.SAFERANGE_VACUUM_PRESSURE)
+            except Exception as ex:
+                logging.error("Invalid SAFERANGE values, tuples of integers expected, "
+                              "falling back to default values, ex: %s", ex)
+>>>>>>> db07fb19bc62317ea92b7228cbeb189ab1baa97f
                 mppc_temp_rel = MPPC_TEMP_REL
                 heatsink_temp = driver.SAFERANGE_HEATSINK_TEMP
                 mppc_current = driver.SAFERANGE_MPCC_CURRENT
                 vacuum_pressure = driver.SAFERANGE_VACUUM_PRESSURE
             return mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure
         else:
+<<<<<<< HEAD
             logging.error("No available section with name %s in the configuration file", section)
+=======
+            raise ValueError("No available section with name %s in the config file", section)
+
+    def get_tuple(section, option):
+        return tuple(int(k.strip()) for k in option[1:-1].split(','))
+>>>>>>> db07fb19bc62317ea92b7228cbeb189ab1baa97f
 
     def save_config(self):
         """
         Save the configuration to an INI file. This is usually called when the window is closed.
+        Note that the 'TARGET' and 'SAFERANGE' sections are not saved on purpose. They should not appear in the
+        config file if the user hasn’t explicitly written them. The ini file will contain these 2 sections only
+        if they are read from the previous config.read().
         """
         if not SAVE_CONFIG:
             logging.warning("Not saving jolt state.")

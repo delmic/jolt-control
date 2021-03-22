@@ -38,7 +38,7 @@ import wx.adv
 from pkg_resources import resource_filename
 
 # Start simulator if environment variable is set
-TEST_NOHW = 1#(os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
+TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
 
 # Set up logging
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
@@ -158,7 +158,7 @@ class JoltApp(wx.App):
             self.config = configparser.ConfigParser(converters={'tuple': self.get_tuple})
             logging.debug("Reading configuration file %s", self.config_file)
             self.config.read(self.config_file)
-        if section is 'DEFAULT':
+        if section == 'DEFAULT':
             try:
                 voltage = self.config.getfloat('DEFAULT', 'voltage', fallback=0.0)
                 gain = self.config.getfloat('DEFAULT', 'gain', fallback=0.0)
@@ -170,7 +170,7 @@ class JoltApp(wx.App):
             if channel not in ["R", "G", "B", "Pan"]:
                 channel = "R"
             return voltage, gain, offset, channel
-        elif section is 'TARGET':
+        elif section == 'TARGET':
             try:
                 mppc_temp = self.config.getint('TARGET', 'mppc_temp', fallback=MPPC_TEMP_POWER_ON)
             except Exception as ex:
@@ -178,7 +178,7 @@ class JoltApp(wx.App):
                               "falling back to default values, ex: %s", ex)
                 mppc_temp = MPPC_TEMP_POWER_ON
             return mppc_temp
-        elif section is 'SAFERANGE':
+        elif section == 'SAFERANGE':
             try:
                 mppc_temp_rel = self.config.gettuple('SAFERANGE', 'mppc_temp_rel', fallback=MPPC_TEMP_REL)
                 heatsink_temp = self.config.gettuple('SAFERANGE', 'heatsink_temp',
@@ -608,7 +608,7 @@ class JoltApp(wx.App):
         # is a good chance that the textbox is going to be updated when we're not actively writing in it
         # (this last point is implemented in the event callback functions).
         focus = self.dialog.FindFocus()
-        print(focus, self.spinctrl_offset)
+        # print(focus, self.spinctrl_offset)
         for ctrl, val in [(self.spinctrl_gain, self.gain), (self.spinctrl_offset, self.offset)]:
             if not focus == ctrl:
                 ctrl.SetValue(val)

@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['..\\..\\src\\jolt\\fwupd\\jolt_fwupd.py'],
-             pathex=['../../src/jolt', 'C:\\development\\jolt-engineering\\install\\windows'],
+             pathex=['../../src/jolt', 'C:\\development\\jolt-control\\install\\windows'],
              binaries=[],
              datas=[('../../src/jolt/fwupd/fw_updater.xrc', '.')],
              hiddenimports=[],

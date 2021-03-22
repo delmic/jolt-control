@@ -11,16 +11,29 @@
 \section{Software Overview}
 The \texttt{jolt-control} repository contains the control software and the firmware-updater for the Jolt system. Delmic engineers will have access to two additional repositories: \texttt{jolt-firmware} for the firmware code and \texttt{EOISerial} which provides a command line tool to communicate with the device (written by ElectroOptical Innovations).
 
-The main code is in src/jolt. It contains folders for the gui and the firmware updater. The entry point for the gui is src/jolt/gui/jolt\_app.py, for the firmware-updater, it is src/jolt/fwupd/fw\_updater.py Both can be run directly from the terminal after exporting the src folder to the pythonpath. The software runs on linux and windows.
+The main code is in src/jolt. It contains folders for the gui and the firmware updater. The entry point for the gui is \texttt{src/jolt/gui/jolt\_app.py}, for the firmware-updater, it is \texttt{src/jolt/fwupd/fw\_updater.py} Both can be run directly from the terminal after exporting the src folder to the python path. The software runs on Linux and Windows.
 
-Additionally, there is the NXPISP folder inside src/ which contains code for uploading firmware to the device. It was also created by ElectroOptical Innovations and can be used according to the free licence (see licence file in the folder).
+Additionally, there is the NXPISP folder inside \texttt{src/} which contains code for uploading firmware to the device. It was also created by ElectroOptical Innovations and can be used according to the free licence (see licence file in the folder).
 
 \section{Jolt GUI}
 \subsection{Improving the GUI}
-The GUI uses wxpython with xrc files and the layout was designed with wxFormBuilder version 3.9 on Windows 10. It does not run on ubuntu. Other versions of wxFormBuilder do not work. It is recommended not to directly change the xrc files, but only the fbp files from the wxFormBuilder GUI.
+The GUI uses wxpython with XRC files and the layout was designed with wxFormBuilder version 3.9 on Windows 10. It does not run on Ubuntu. Other versions of wxFormBuilder do not work. It is recommended not to directly change the XRC files, but only the fbp files from the wxFormBuilder GUI.
+
+To run directly from the source, in Windows, you can also use the dedicated script \texttt{install/windows/run_jolt_from_source.bat}.
+
+\subsection{Testing with a simulator}
+It's possible to run the GUI, both on Linux and Windows, with a simulator of the JOLT.
+To do so, the environment variable \texttt{TEST\_NOHW} should be set to 1. On Linux
+this means you can run it this way:\\
+\texttt{TEST\_NOHW=1 python3 src/jolt/gui/jolt\_app.py}
 
 \section{EOISerial command line tool}
-For debugging purposes, there exists a command line tool that communicates with the computer board called \texttt{EOISerial}. Open the folder in a terminal, add it to the pythonpath (\texttt{export PYTHONPATH=<path>:\$PYTHONPATH}) and type \\ \texttt{python3 cbcnt.py status} \\to get all current settings. Commands can be send by typing \\ \texttt{python3 cbcnt.py command -c <command> -a <arg>} \\ The list of commands can be displayed with \texttt{python3 cbcnt.py command}. There also exists a pdf document with details on the commands and their arguments.
+For debugging purposes, there exists a command line tool that communicates with the computer board called \texttt{EOISerial}. Open the folder in a terminal, add it to the pythonpath (\texttt{export PYTHONPATH=<path>:\$PYTHONPATH}) and type:\\
+\texttt{python3 cbcnt.py status}\\
+to get all current settings. Commands can be send by typing:\\
+\texttt{python3 cbcnt.py command -c <command> -a <arg>}\\
+The list of commands can be displayed with \texttt{python3 cbcnt.py command}.
+There also exists a pdf document with details on the commands and their arguments.
 
 \section{Firmware}
 
@@ -30,7 +43,7 @@ For uploading the firmware binary, we provide a tool with a graphical user inter
 For debugging purposes, it is also possible to use the command line tool from the NXPISP library.
 \begin{itemize}
 	\item Download the EOISerial and the jolt-control libraries
-	\item Navigate in a terminal to jolt-engineering/src/NXPISP and type \texttt{python3 setup.py build \&\& sudo python3 setup.py install}. If that doesn't work, try:\\ \texttt{pip install .}
+	\item Navigate in a terminal to jolt-control/src/NXPISP and type \texttt{python3 setup.py build \&\& sudo python3 setup.py install}. If that doesn't work, try:\\ \texttt{pip install .}
 	\item Navigate to the EOISerial folder and add that folder to the pythonpath (cf EOISerial command line tool section)
 	\item Now, we put the computer board in ISP mode. \\
 	For uploading firmware to the computer board:
@@ -61,7 +74,7 @@ These are the steps:
 	\item Install the Windows operating system in a virtual machine, e.g. VirtualBox.
 	\item Install Python 3 (e.g. 3.8, some older versions might also work)
 	\item Install pip
-	\item Use pip to install the following packages: pyinstaller (3.5), wxpython (4.0.6), appdirs (1.4.3), decorator (4.4.0), serial (0.0.97, not needed?), pyserial (3.4), timeout\_decorator (0.4.1), click (7.0)
+	\item Use pip to install the dependencies: \texttt{pip3 install -r requirements.txt}. Note that on Linux, you need to remove the pywin32* dependencies.
 	\item Navigate in the file explorer to the \texttt{jolt-control/install/windows} directory
 	\item Double-click "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
 	\item The executable can be found in the \texttt{dist} folder.

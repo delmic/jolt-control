@@ -2,8 +2,8 @@
 block_cipher = None
 
 
-a = Analysis(['..\\..\\src\\jolt\\gui\\jolt_app.py'],
-             pathex=['../../src/jolt', 'C:\\development\\jolt-control\\install\\windows'],
+a = Analysis(['../../src/jolt/gui/jolt_app.py'],
+             pathex=['../../src/jolt', '../install/windows'],
              binaries=[],
              datas=[('../../src/jolt/gui/jolt_app.xrc', 'jolt/gui'), ('../../src/jolt/gui/img/*', 'jolt/gui/img'), ('dll/api-ms-win-crt-runtime-l1-1-0.dll', '.')],
              hiddenimports=[],
@@ -18,7 +18,7 @@ pyz = PYZ(a.pure, a.zipped_data,
              cipher=block_cipher)
 exe = EXE(pyz,
           a.scripts,
-		  a.binaries,
+          a.binaries,
           a.zipfiles,
           a.datas,
           name='Jolt',

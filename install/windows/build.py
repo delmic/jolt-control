@@ -4,7 +4,7 @@ import sys
 import traceback
 from builtins import input
 
-jolt_cmd = ["pyinstaller", "--clean", "-y", "--onefile", "JoltApp.spec"]
+jolt_cmd = ["pyinstaller", "--clean", "-y", "--onefile", "JOLTApp.spec"]
 fwupd_cmd = ["pyinstaller", "--clean", "-y", "--onefile", "FirmwareUpdater.spec"]
 
 def run_command(cmd, flavor=None):

@@ -1,4 +1,7 @@
 setlocal
-set PYTHONPATH=C:\development\jolt-engineering\src\;%PYTHONPATH%
-python C:\development\jolt-engineering\src\jolt\gui\jolt_app.py
+SET "scriptdir=%~dp0"
+SET PYTHONPATH=%scriptdir%\..\src\;%PYTHONPATH%
+REM Uncomment to run with the simulator
+REM set TEST_NOHW=1
+python %scriptdir%\..\src\jolt\gui\jolt_app.py
 endlocal

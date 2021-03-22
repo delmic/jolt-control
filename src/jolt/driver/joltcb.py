@@ -368,10 +368,7 @@ class JOLTComputerBoard():
             serial = JOLTSimulator(timeout=0.1)
             return serial
 
-        if os.name == "nt":
-            ports = list(comports())
-        else:
-            ports = glob.glob("/dev/ttyUSB*")
+        ports = [p.device for p in comports()]
  
         for n in ports:
             try:

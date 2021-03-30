@@ -104,6 +104,8 @@ class FirmwareUpdater(wx.App):
         self.dialog.Bind(wx.EVT_FILEPICKER_CHANGED, self.OnFileCb, id=xrc.XRCID('filePicker_cb'))
         self.dialog.Bind(wx.EVT_FILEPICKER_CHANGED, self.OnFileFb, id=xrc.XRCID('filePicker_fb'))
         self.dialog.Bind(wx.EVT_BUTTON, self.OnUploadBtn, id=xrc.XRCID('upload_button'))
+        self.dialog.Bind(wx.EVT_BUTTON, self.OnEraseBtn, id=xrc.XRCID('erase_button'))
+        self.dialog.Bind(wx.EVT_BUTTON, self.OnEraseBtn, id=xrc.XRCID('erase_button'))
 
         self.dialog.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -114,8 +116,6 @@ class FirmwareUpdater(wx.App):
         self.upload_btn.Enable(False)
         self.finish_label.Hide()
 
-        # Advanced drop down menu for resetting completely (deleting firmware)
-        
         return True
 
     def OnFileCb(self, event):
@@ -139,6 +139,17 @@ class FirmwareUpdater(wx.App):
             if not self.compboard_isempty:  # computer board firmware required
                 self.upload_btn.Enable(True)
 
+    def OnEraseBtn(self, event):
+        passwd = wx.PasswordEntryDialog(None, 'Password', "Erase Firmware", '',
+                                        style=wx.TextEntryDialogStyle)
+        ans = passwd.ShowModal()
+        if ans == wx.ID_OK:
+            entered_password = passwd.GetValue()
+            if entered_password == "delmic":
+                thread = threading.Thread(target=self.erase_firmware)
+                thread.start()
+        passwd.Destroy()
+
     def OnUploadBtn(self, event):
         if not self.file_cb and not self.file_fb:
             # error dialog
@@ -147,26 +158,67 @@ class FirmwareUpdater(wx.App):
         thread = threading.Thread(target=self.upload_firmware)
         thread.start()
 
+    def erase_firmware(self):
+        if not self.driver:
+            print("\n\nNo computer board found.")
+            return
+
+        try:
+            print("Entering Computer Board ISP mode...")
+            self.driver.set_cb_isp_mode()
+        except IOError:
+            # Probably an issue related to a bug in an early version of the firmware, which sends
+            # a faulty status message
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_tb)
+            print("Ignoring error...\n")
+        except:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_tb)
+            return
+        time.sleep(2)
+
+        max_trials = 5
+        for i in range(max_trials):
+            print("\n\nErasing firmware: Trial %d" % i)
+            print("Setting up chip...")
+            try:
+                chip = SetupChip('LPC845', self.serial)
+                print('Erasing...')
+                chip.MassErase()
+                break
+            except Exception as ex:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                traceback.print_exception(exc_type, exc_value, exc_tb)
+                self.serial.close()
+                self.serial = Serial(self.portname, baudrate=9600, xonxoff=False)
+        else:
+            self.display_msg_dialog(
+                "Erasing the firmware failed.",
+                'Error', wx.OK | wx.ICON_ERROR)
+            return
+
+        print("\nFirmware erased successfully.\n\n")
+
     def upload_firmware(self):
         cb_success = True
         fb_success = True
         if self.compboard_isempty:
-            while True:
-                if os.name == "nt":
-                    ports = list(serial.tools.list_ports.comports())
-                    for p in ports:
-                        print(p)
-                else:
-                    ports = glob.glob("/dev/ttyUSB*")
-                    
-                if len(ports) > 1:
-                    # make sure we don't upload firmware to wrong device
-                    self.display_msg_dialog("Multiple serial ports detected. Remove all other USB devices and try again.", 'Warning', wx.OK | wx.CANCEL | wx.ICON_WARNING)
-                    continue
-                else:
-                    self.portname = ports[0]
-                    self.serial = Serial(ports[0], baudrate=9600, xonxoff=False)
-                    break
+            if os.name == "nt":
+                ports = [p[0] for p in serial.tools.list_ports.comports()]  # first element contains name ("COM1")
+            else:
+                ports = glob.glob("/dev/ttyUSB*")
+
+            if len(ports) == 0:
+                print("No device found.")
+                return
+            elif len(ports) > 1:
+                # make sure we don't upload firmware to wrong device
+                self.display_msg_dialog("Multiple serial ports detected. Remove all other USB devices and try again.", 'Warning', wx.OK | wx.CANCEL | wx.ICON_WARNING)
+                return
+            else:
+                self.portname = ports[0]
+                self.serial = Serial(ports[0], baudrate=9600, xonxoff=False)
 
         if self.file_cb:
             cb_success = False
@@ -174,6 +226,12 @@ class FirmwareUpdater(wx.App):
                 try:
                     print("Entering Computer Board ISP mode...")
                     self.driver.set_cb_isp_mode()
+                except IOError:
+                    # Probably an issue related to a bug in an early version of the firmware, which sends
+                    # a faulty status message
+                    exc_type, exc_value, exc_tb = sys.exc_info()
+                    traceback.print_exception(exc_type, exc_value, exc_tb)
+                    print("Ignoring error...\n")
                 except:
                     exc_type, exc_value, exc_tb = sys.exc_info()
                     traceback.print_exception(exc_type, exc_value, exc_tb)

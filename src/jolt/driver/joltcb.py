@@ -24,9 +24,7 @@ import logging
 import time
 import threading
 import random
-import glob
 from serial.tools.list_ports import comports
-
 
 SOH = chr(0x01).encode('latin1')  # chr(0x01).encode('latin1')  # start of header
 EOT = chr(0x04).encode('latin1')  # end of transmission
@@ -39,7 +37,7 @@ ID_STATUS = chr(0x53).encode('latin1')  # packet identifier command
 ID_ASCII = chr(0x4D).encode('latin1')  # packet identifier ascii message
 ID_BIN = chr(0x04).encode('latin1')  # packet identifier binary message
 
-ERROR_CODE = chr(0x59).encode('latin1')  # TODO
+ERROR_CODE = chr(0x8).encode('latin1')  # for the simulator, 8 means everything OK
 
 CMD_GET_VERSION = 0x60
 CMD_GET_FIRMWARE_VER = 0x61
@@ -87,7 +85,7 @@ CHANNEL_OFF = 0
 
 SAFERANGE_MPCC_CURRENT = (-5000, 5000)
 SAFERANGE_MPCC_TEMP = (-20, 20)
-SAFERANGE_HEATSINK_TEMP = (-20, 40)
+SAFERANGE_HEATSINK_TEMP = (-20, 45)
 SAFERANGE_VACUUM_PRESSURE = (0, 50)
 
 class JOLTError(Exception):

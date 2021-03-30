@@ -20,7 +20,7 @@ along with this program; if not, see http://www.gnu.org/licenses/.
 from NXPISP.bin import SetupChip
 import glob
 from jolt.driver import JOLTComputerBoard
-from jolt.util import resource_path, call_in_wx_main
+from jolt.util import call_in_wx_main
 import os
 from serial import Serial
 import serial.tools.list_ports
@@ -30,6 +30,7 @@ import time
 import traceback
 from wx import xrc
 import wx
+from pkg_resources import resource_filename
 
 
 COMPUTER_BOARD = 0
@@ -88,7 +89,9 @@ class FirmwareUpdater(wx.App):
 
     def OnInit(self, *args, **kwargs):
         # XRC Loading
-        self.res = xrc.XmlResource(resource_path('fw_updater.xrc'))
+        # For some reason resource_filename('jolt.fwupd', 'fw_updater.xrc') does not
+        # work. It works fine in the JoltApp, but not here.
+        self.res = xrc.XmlResource(resource_filename('jolt', 'fwupd/fw_updater.xrc'))
         self.dialog = self.res.LoadDialog(None, 'MyDialog1')
         
         self.upload_btn = xrc.XRCCTRL(self.dialog, 'upload_button')

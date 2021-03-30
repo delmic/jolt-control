@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+import jolt
+import platform
 
 block_cipher = None
 
@@ -6,7 +8,7 @@ block_cipher = None
 a = Analysis(['../../src/jolt/fwupd/jolt_fwupd.py'],
              pathex=['../../src/jolt', '../../install/windows'],
              binaries=[],
-             datas=[('../../src/jolt/fwupd/fw_updater.xrc', '.')],
+             datas=[('../../src/jolt/fwupd/fw_updater.xrc', 'jolt/fwupd')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
@@ -22,7 +24,7 @@ exe = EXE(pyz,
 		  a.binaries,
           a.zipfiles,
           a.datas,
-          name='JoltFirmwareUpdater',
+          name='JoltFirmwareUpdater-v%s-win%s' % (jolt.__version__, platform.release()),
           debug=False,
           strip=False,
           upx=True,

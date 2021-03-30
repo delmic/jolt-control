@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''
 Created on 30 September 2019
 @author: Anders Muskens, Philip Winkler
-Copyright © 2019 Anders Muskens, Philip Winkler, Delmic
+Copyright © 2019-2021 Anders Muskens, Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,7 +17,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
-from collections import OrderedDict
 
 from appdirs import AppDirs
 import configparser
@@ -210,7 +210,7 @@ class JoltApp(wx.App):
         else:
             raise ValueError("No available section with name %s in the config file", section)
 
-    def get_tuple(section, option):
+    def get_tuple(self, option):
         return tuple(int(k.strip()) for k in option[1:-1].split(','))
 
     def save_config(self):
@@ -318,9 +318,9 @@ class JoltApp(wx.App):
         self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')  # will be updated in debug mode
         self.txtbox_output.SetFocus()  # if focus is None, the f5 event is not captured, so set focus to a textbox
 
-        # change title for simulator to avoid confusion
-        if self.simulated:
-            self.dialog.SetTitle("Delmic Jolt Simulator")
+        # Put the version number in the title, and add "Simulator" when it's not connected to the real hardware
+        title = "Delmic Jolt%s v%s" % (" Simulator" if self.simulated else "", jolt.__version__)
+        self.dialog.SetTitle(title)
 
         # Load bitmaps
         self.bmp_off = wx.Bitmap(resource_filename('jolt.gui', "img/icon_toggle_off.png"))

@@ -26,18 +26,18 @@ import threading
 import random
 from serial.tools.list_ports import comports
 
-SOH = chr(0x01).encode('latin1')  # chr(0x01).encode('latin1')  # start of header
-EOT = chr(0x04).encode('latin1')  # end of transmission
-ACK = chr(0x06).encode('latin1')  # acknowledgement
-NAK = chr(0x15).encode('latin1')
-US = chr(0x1F).encode('latin1')  # unit separator
-ETX = chr(0x03).encode('latin1')  # end of text
-ID_CMD = chr(0x43).encode('latin1')  # packet identifier command
-ID_STATUS = chr(0x53).encode('latin1')  # packet identifier command
-ID_ASCII = chr(0x4D).encode('latin1')  # packet identifier ascii message
-ID_BIN = chr(0x04).encode('latin1')  # packet identifier binary message
+SOH = b"\x01"  # start of header
+EOT = b"\x04"  # end of transmission
+ACK = b"\x06"  # acknowledgement
+NAK = b"\x15"
+US = b"\x1F"  # unit separator
+ETX = b"\x03"  # end of text
+ID_CMD = b"\x43"  # packet identifier command
+ID_STATUS = b"\x53"  # packet identifier command
+ID_ASCII = b"\x4D"  # packet identifier ascii message
+ID_BIN = b"\x04"  # packet identifier binary message
 
-ERROR_CODE = chr(0x8).encode('latin1')  # for the simulator, 8 means everything OK
+ERROR_CODE_OK = 8  # 8 means everything OK
 
 CMD_GET_VERSION = 0x60
 CMD_GET_FIRMWARE_VER = 0x61
@@ -69,8 +69,8 @@ CMD_GET_OFFSET = 0xE0
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_SET_MPPC_TEMP = 0xb0
 CMD_GET_ITEC = 0xcd
-CMD_SET_DifferentialOutput = 0xba
-CMD_SET_SingleEndedOutput = 0xbd
+CMD_SET_DIFFERENTIAL_OUTPUT = 0xba
+CMD_SET_SINGLE_ENDED_OUTPUT = 0xbd
 CMD_GET_ERROR = 0x9e
 
 CMD_CB_ISP = 0xfe
@@ -152,11 +152,11 @@ class JOLTComputerBoard():
         :arg single_ended: True for single ended, false for differential
         """
         if single_ended:
-            self._send_cmd(CMD_SET_DifferentialOutput, int(0).to_bytes(1, 'little', signed=True))
-            self._send_cmd(CMD_SET_SingleEndedOutput, int(1).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, int(0).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, int(1).to_bytes(1, 'little', signed=True))
         else:
-            self._send_cmd(CMD_SET_DifferentialOutput, int(1).to_bytes(1, 'little', signed=True))
-            self._send_cmd(CMD_SET_SingleEndedOutput, int(0).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, int(1).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, int(0).to_bytes(1, 'little', signed=True))
         
     def set_power(self, val):
         """
@@ -609,13 +609,18 @@ class JOLTSimulator():
         elif com == CMD_SET_CHANNEL:
             self._sendStatus(ACK)
             self.channel = int.from_bytes(arg, 'little', signed=True)
+        elif com == CMD_SET_DIFFERENTIAL_OUTPUT:
+            self._sendStatus(ACK)
+            # do nothing
+        elif com == CMD_SET_SINGLE_ENDED_OUTPUT:
+            self._sendStatus(ACK)
+            # do nothing
         elif com == CMD_GET_ITEC:
             self._sendStatus(ACK)
             self._sendAnswer(self.itec.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_ERROR:
             self._sendStatus(ACK)
-            # TODO: send what?
-            self._sendAnswer(ERROR_CODE)
+            self._sendAnswer(ERROR_CODE_OK.to_bytes(1, 'little', signed=False))
         elif com == CMD_CALL_AUTO_BC:
             self._sendStatus(ACK)
             # do nothing

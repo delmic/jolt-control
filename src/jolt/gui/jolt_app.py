@@ -25,6 +25,7 @@ import jolt
 from jolt.gui import xmlh
 from jolt.util import log, call_in_wx_main
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 from shutil import copyfile
 import sys
@@ -75,8 +76,13 @@ class JoltApp(wx.App):
 
         # Load configuration and logging files, create directories if they don't exist
         dirs = AppDirs("Jolt", "Delmic")
+        log_file = os.path.join(dirs.user_log_dir, 'jolt.log')  # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
+        self.init_file_logger(log_file, logging.DEBUG)
+
+        logging.info("Software version: %s", jolt.__version__)
+        logging.info("Python version: %d.%d", sys.version_info[0], sys.version_info[1])
+
         self.config_file = os.path.join(dirs.user_data_dir, 'jolt.ini')
-        self.log_file = os.path.join(dirs.user_log_dir, 'jolt.log')  # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
         if not os.path.isdir(dirs.user_data_dir):
             os.makedirs(dirs.user_data_dir)
             copyfile(resource_filename('jolt.gui', 'jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
@@ -121,13 +127,12 @@ class JoltApp(wx.App):
             return
 
         # Get information from hardware for the log
-        logging.info("Software version: %s", jolt.__version__)
-        logging.info("Backend firmware: %s" % self.dev.get_be_fw_version())
-        logging.info("Backend hardware: %s" % self.dev.get_be_hw_version())
-        logging.info("Backend serial number: %s" % self.dev.get_be_sn())
-        logging.info("Frontend firmware: %s" % self.dev.get_fe_fw_version())
-        logging.info("Frontend hardware: %s" % self.dev.get_fe_hw_version())
-        logging.info("Frontend serial number: %s" % self.dev.get_fe_sn())
+        logging.info("Backend firmware: %s", self.dev.get_be_fw_version())
+        logging.info("Backend hardware: %s", self.dev.get_be_hw_version())
+        logging.info("Backend serial number: %s", self.dev.get_be_sn())
+        logging.info("Frontend firmware: %s", self.dev.get_fe_fw_version())
+        logging.info("Frontend hardware: %s", self.dev.get_fe_hw_version())
+        logging.info("Frontend serial number: %s", self.dev.get_fe_sn())
 
         # Check frontend board connection
         if "Unknown" in self.dev.get_fe_fw_version():
@@ -231,6 +236,21 @@ class JoltApp(wx.App):
         self.config.write(cfgfile)
         cfgfile.close()
 
+    def init_file_logger(self, log_file, level=logging.DEBUG):
+        """
+        Initializes the file logger to some nice defaults.
+        To be called only once, at the initialisation.
+        log_file (str): full path to the log file
+        """
+        logging.debug("Opening log file %s", log_file)
+        # Max 5 log files of 100Mb
+        self.fileHandler = RotatingFileHandler(log_file, maxBytes=100 * (2 ** 20), backupCount=5)
+        self.fileHandler.setLevel(level)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+        self.fileHandler.setFormatter(formatter)
+
+        logging.getLogger().addHandler(self.fileHandler)
+
     def init_dialog(self):
         """
         Load the XRC GUI and connect all of the GUI controls to their event handlers
@@ -241,26 +261,16 @@ class JoltApp(wx.App):
         self.res.InsertHandler(xmlh.SpinCtrlDoubleXmlHandler())
         self.dialog = self.res.LoadDialog(None, 'ControlWindow')
 
-        # Initialize logging and connect it to the log text box
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
         # attach the logging to the log text control as a handler
         self.txtbox_log = xrc.XRCCTRL(self.dialog, 'txtbox_log')
         self.textHandler = log.TextFieldHandler()
         self.textHandler.setTextField(self.txtbox_log)
         self.textHandler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         self.textHandler.setFormatter(formatter)
 
-        # add a file logger handler
-        logging.debug("Opening log file %s", self.log_file)
-        self.fileHandler = logging.FileHandler(self.log_file)
-        self.fileHandler.setLevel(logging.DEBUG)
-        self.fileHandler.setFormatter(formatter)
-
         # attach to the global logger
-        self.logger = logging.getLogger('')  # use the global logger
-        self.logger.addHandler(self.textHandler)
-        self.logger.addHandler(self.fileHandler)
+        logging.getLogger().addHandler(self.textHandler)
 
         # controls and events:
         # Initialize all of the GUI controls and connect them to events
@@ -754,6 +764,7 @@ class JoltApp(wx.App):
         """
         warn = warnings.formatwarning(message, category, filename, lineno, line)
         logging.warning(warn)
+
 
 def installThreadExcepthook():
     """ Workaround for sys.excepthook thread bug

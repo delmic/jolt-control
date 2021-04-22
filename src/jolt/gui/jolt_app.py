@@ -85,7 +85,6 @@ class JoltApp(wx.App):
         self.config_file = os.path.join(dirs.user_data_dir, 'jolt.ini')
         if not os.path.isdir(dirs.user_data_dir):
             os.makedirs(dirs.user_data_dir)
-            copyfile(resource_filename('jolt.gui', 'jolt.ini'), os.path.join(dirs.user_data_dir, 'jolt.ini'))
         if not os.path.isdir(dirs.user_log_dir):
             os.makedirs(dirs.user_log_dir)
 
@@ -180,6 +179,8 @@ class JoltApp(wx.App):
                 gain = self.config.getfloat('DEFAULT', 'gain', fallback=0.0)
                 offset = self.config.getfloat('DEFAULT', 'offset', fallback=0.0)
                 channel = self.config.get('DEFAULT', 'channel', fallback="R")
+                # TODO: ambient is not really needed, as it could be replicated by
+                # setting the target temperature to 15 and the pressure range to a very wide range.
                 ambient = self.config.get('DEFAULT', 'ambient', fallback=False)
             except Exception as ex:
                 logging.error("Invalid given values, falling back to default values, ex: %s", ex)

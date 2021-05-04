@@ -221,7 +221,7 @@
 									<min>0</min>
 									<max>100</max>
 									<inc>1</inc>
-									<digits>2</digits>
+									<digits>1</digits>
 								</object>
 							</object>
 							<object class="sizeritem">
@@ -265,7 +265,7 @@
 									<min>0</min>
 									<max>100</max>
 									<inc>1</inc>
-									<digits>2</digits>
+									<digits>1</digits>
 								</object>
 							</object>
 							<object class="sizeritem">

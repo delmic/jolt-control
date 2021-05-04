@@ -27,6 +27,7 @@ DEFAULT_MAX = 100.0
 DEFAULT_STEP = 1.0
 DEFAULT_INITIAL = 0.0
 
+
 class SpinCtrlDoubleXmlHandler (xrc.XmlResourceHandler):
     """
     Class to implement loading the wx SpinCtrlDouble class from XRC
@@ -61,12 +62,13 @@ class SpinCtrlDoubleXmlHandler (xrc.XmlResourceHandler):
             self.GetStyle("style", wx.SP_ARROW_KEYS | wx.ALIGN_RIGHT | wx.TE_PROCESS_ENTER),
             self.GetFloat("min", DEFAULT_MIN),
             self.GetFloat("max", DEFAULT_MAX),
-            self.GetFloat("initial", DEFAULT_INITIAL),
+            self.GetFloat("initial", DEFAULT_INITIAL),  # Ignored if value contains a number
             self.GetFloat("inc", DEFAULT_STEP),
             self.GetName(),
         )
+        if self.GetParamNode("digits"):
+            spinctrl.SetDigits(self.GetLong("digits"))
 
-        # These two things should be done in either case:
         # Set standard window attributes
         self.SetupWindow(spinctrl)
 

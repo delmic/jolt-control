@@ -447,7 +447,6 @@ class JoltApp(wx.App):
 
     def on_collapse_log(self, event):
         self.dialog.Fit()
-        event.Skip()
 
     def on_power(self, event):
         self.toggle_power()
@@ -514,21 +513,18 @@ class JoltApp(wx.App):
     def on_radiobox(self, event):
         self.dev.set_channel(STR2CHANNEL[event.GetEventObject().GetStringSelection()])
         logging.debug("Changed channel to %s", event.GetEventObject().GetStringSelection())
-        event.Skip()
 
     def on_gain_slider(self, event):
         gain = event.GetPosition()
         self.spinctrl_gain.SetValue(gain)
         self.dev.set_gain(gain)
         logging.debug("Changed gain to %s", gain)
-        event.Skip()
 
     def on_offset_slider(self, event):
         offset = event.GetPosition()
         self.spinctrl_offset.SetValue(offset)
         self.dev.set_offset(offset)
         logging.debug("Changed offset to %s", offset)
-        event.Skip()
 
     def on_gain_spin(self, event):
         gain = self.spinctrl_gain.GetValue()
@@ -536,7 +532,6 @@ class JoltApp(wx.App):
         self.dev.set_gain(gain)
         logging.debug("Changed gain to %s", gain)
         self.txtbox_output.SetFocus()
-        event.Skip()
 
     def on_offset_spin(self, event):
         offset = self.spinctrl_offset.GetValue()
@@ -544,7 +539,6 @@ class JoltApp(wx.App):
         self.dev.set_offset(offset)
         logging.debug("Changed offset to %s", offset)
         self.txtbox_output.SetFocus()
-        event.Skip()
 
     @call_in_wx_main
     def update_controls(self):

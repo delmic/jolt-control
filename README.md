@@ -41,7 +41,7 @@ or invalid inputs are inserted, the code updates the variables with some default
    mppc_temp_rel = (-1, 1)
    heatsink_temp = (-20, 40)
    mppc_current = (-5000, 5000)
-   vacuum_pressure = (0, 50)
+   vacuum_pressure = (0, 5)
 ```
 
 Note that the SAFERANGE variables are tuples of integers and they represent the lower and upper threshold value of the corresponding feature.

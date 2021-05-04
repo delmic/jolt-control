@@ -84,9 +84,10 @@ CHANNEL_B = 2
 CHANNEL_OFF = 0
 
 SAFERANGE_MPCC_CURRENT = (-5000, 5000)
-SAFERANGE_MPCC_TEMP = (-20, 20)
-SAFERANGE_HEATSINK_TEMP = (-20, 45)
-SAFERANGE_VACUUM_PRESSURE = (0, 50)
+SAFERANGE_MPCC_TEMP = (-20, 20)  # °C
+SAFERANGE_HEATSINK_TEMP = (-20, 45)  # °C
+SAFERANGE_VACUUM_PRESSURE = (0, 5)  # mbar
+
 
 class JOLTError(Exception):
 
@@ -475,14 +476,14 @@ class JOLTSimulator():
 
         # TODO: use reasonable numbers
         self.power = False
-        self.voltage = int(-12e6)  # ÂµV
-        self.offset = int(5e6)  # ÂµV
-        self.gain = int(10e6)  # ÂµV
-        self.mppc_temp = int(30e6)  # ÂµC
-        self.cold_plate_temp = int(24e6)  # ÂµC
-        self.hot_plate_temp = int(35e6)  # ÂµC
-        self.output = int(800)  # ÂµV
-        self.vacuum_pressure = int(50e3)  # ÂµBar
+        self.voltage = int(-12e6)  # µV
+        self.offset = int(5e6)  # µV
+        self.gain = int(10e6)  # µV
+        self.mppc_temp = int(30e6)  # µC
+        self.cold_plate_temp = int(24e6)  # µC
+        self.hot_plate_temp = int(35e6)  # µC
+        self.output = int(800)  # µV
+        self.vacuum_pressure = int(3e3)  # µBar
         self.channel = CHANNEL_R
         self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
         self.itec = int(10e6)
@@ -632,7 +633,7 @@ class JOLTSimulator():
             self._sendStatus(NAK)
 
     def _modify_pressure(self):
-        self.vacuum_pressure += random.randint(-5e3, 5e3)
+        self.vacuum_pressure += random.randint(-0.1e3, 0.1e3)
         self.vacuum_pressure = max(self.vacuum_pressure, 0)
 
     def _modify_hp_temperature(self):

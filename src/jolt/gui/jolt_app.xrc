@@ -4,11 +4,7 @@
 		<style>wxDEFAULT_DIALOG_STYLE|wxMINIMIZE_BOX</style>
 		<font>
 			<size>12</size>
-			<family>swiss</family>
-			<style>normal</style>
-			<weight>normal</weight>
-			<underlined>0</underlined>
-			<face>Calibri</face>
+			<sysfont>wxSYS_DEFAULT_GUI_FONT</sysfont>
 		</font>
 		<title>Delmic Jolt</title>
 		<centered>1</centered>

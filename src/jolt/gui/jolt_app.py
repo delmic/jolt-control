@@ -76,6 +76,8 @@ class JoltApp(wx.App):
 
         # Load configuration and logging files, create directories if they don't exist
         dirs = AppDirs("Jolt", "Delmic")
+        if not os.path.isdir(dirs.user_log_dir):
+            os.makedirs(dirs.user_log_dir)
         log_file = os.path.join(dirs.user_log_dir, 'jolt.log')  # C:\Users\<name>\AppData\Local\Delmic\Jolt\Logs
         self.init_file_logger(log_file, logging.DEBUG)
 
@@ -85,8 +87,6 @@ class JoltApp(wx.App):
         self.config_file = os.path.join(dirs.user_data_dir, 'jolt.ini')
         if not os.path.isdir(dirs.user_data_dir):
             os.makedirs(dirs.user_data_dir)
-        if not os.path.isdir(dirs.user_log_dir):
-            os.makedirs(dirs.user_log_dir)
 
         self.config = None
         # Initialize values

@@ -68,15 +68,19 @@ The firmware code can be found in the \texttt{jolt-firmware} repository. Follow 
 
 \section{Distribution}
 
-\subsection{Marking a new version}
+\subsection{Marking a new version & release}
+
+Bug fixes, new features, GUI improvement should always be accompanied by a new release of JOLT software. It's crucial to update both github and bitbucket with the latest merged changes.
+In github it's possible to mark the last commit as a new release.
 \begin{enumerate}
     \item Edit \texttt{src/jolt/\_\_init\_\_.py}, and set \texttt{\_\_version\_\_} to the new version number, eg "1.0.3".
     Commit this change.
-    \item Tag the commit with a corresponding name, but starting with a "v", eg "v1.0.3".
+    \item Tag the commit by using the "git tag" command with the tag name (starting with a "v", eg "v1.0.3") and the commit SHA.
     In the tag text, put the changelog.
-    \item You can now build the release files.
-    \item After the build, you can update again the \texttt{\_\_version\_\_} to a development version,
+    \item You can now build the release files and update again the \texttt{\_\_version\_\_} to a development version,
     eg, "1.0.3-dev".
+    \item Go to \texttt{https://github.com/delmic/jolt-control/releases} and click on \texttt{Draft a new release} button.
+    Define the release version, write a short description about the new additions and attach the signed jolt and firmware updater executable files.
 \end{enumerate}
 
 

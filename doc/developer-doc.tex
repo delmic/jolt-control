@@ -68,19 +68,20 @@ The firmware code can be found in the \texttt{jolt-firmware} repository. Follow 
 
 \section{Distribution}
 
-\subsection{Marking a new version & release}
+\subsection{Marking a new version \& release}
 
 Bug fixes, new features, GUI improvement should always be accompanied by a new release of JOLT software. It's crucial to update both github and bitbucket with the latest merged changes.
 In github it's possible to mark the last commit as a new release.
 \begin{enumerate}
     \item Edit \texttt{src/jolt/\_\_init\_\_.py}, and set \texttt{\_\_version\_\_} to the new version number, eg "1.0.3".
     Commit this change.
-    \item Tag the commit by using the "git tag" command with the tag name (starting with a "v", eg "v1.0.3") and the commit SHA.
+    \item Tag the commit by using a command like \texttt{git tag -a v1.0.3} (the version must start with a "v").
     In the tag text, put the changelog.
-    \item You can now build the release files and update again the \texttt{\_\_version\_\_} to a development version,
-    eg, "1.0.3-dev".
-    \item Go to \texttt{https://github.com/delmic/jolt-control/releases} and click on \texttt{Draft a new release} button.
+    \item Push to both github and bitbucket with \texttt{git push REMOTE \&\& git push --tags REMOTE}.
+    \item You can now build the release files (see section below).
+    \item Go to \texttt{https://github.com/delmic/jolt-control/releases} and click on \emph{Draft a new release} button.
     Define the release version, write a short description about the new additions and attach the signed jolt and firmware updater executable files.
+    \item Update again the \texttt{\_\_version\_\_} to a development version, eg, "1.0.3-dev", commit, and push.
 \end{enumerate}
 
 
@@ -95,6 +96,7 @@ These are the steps:
 	\item Navigate in the file explorer to the \texttt{jolt-control/install/windows} directory
 	\item Double-click "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
 	\item The executable can be found in the \texttt{dist} folder.
+	\item All the executables should be signed.
 \end{enumerate}
 Some tricks for tuning the virtualbox settings:
 \begin{itemize}

@@ -56,6 +56,8 @@ CMD_CALL_AUTO_BC = 0x00
 CMD_GET_CHANNEL_LIST = 0x00
 CMD_GET_MPPC_TEMP = 0xb1
 CMD_GET_OUTPUT_SINGLE_ENDED = 0xbe
+CMD_GET_DIFFERENTIAL_PLUS_READING = 0xbb
+CMD_GET_DIFFERENTIAL_MINUS_READING = 0xbc
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_GET_VACUUM_PRESSURE = 0x92
 CMD_SET_GAIN = 0x89
@@ -153,12 +155,12 @@ class JOLTComputerBoard():
         :arg single_ended: True for single ended, false for differential
         """
         if single_ended:
-            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, int(0).to_bytes(1, 'little', signed=True))
-            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, int(1).to_bytes(1, 'little', signed=True))
+            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, bytes([0x00]))
+            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, bytes([0xff]))
         else:
-            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, int(1).to_bytes(1, 'little', signed=True))
-            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, int(0).to_bytes(1, 'little', signed=True))
-        
+            self._send_cmd(CMD_SET_SINGLE_ENDED_OUTPUT, bytes([0x00]))
+            self._send_cmd(CMD_SET_DIFFERENTIAL_OUTPUT, bytes([0xff]))
+
     def set_power(self, val):
         """
         :param val: (bool) True for on, False for off
@@ -263,7 +265,21 @@ class JOLTComputerBoard():
         """
         b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 5e6
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
-    
+
+    def get_plus_reading_differential(self):
+        """
+        :returns: (0 <= int <= 100): single-ended output
+        """
+        b = self._send_query(CMD_GET_DIFFERENTIAL_PLUS_READING)  # 4 bytes, 0 - 5e6
+        return int.from_bytes(b, 'little', signed=True) / 4095 * 100
+
+    def get_minus_reading_differential(self):
+        """
+        :returns: (0 <= int <= 100): single-ended output
+        """
+        b = self._send_query(CMD_GET_DIFFERENTIAL_MINUS_READING)  # 4 bytes, 0 - 5e6
+        return int.from_bytes(b, 'little', signed=True) / 4095 * 100
+
     def get_vacuum_pressure(self):
         """
         :returns: (10 <= float <= 1200) pressure in mBar
@@ -403,7 +419,7 @@ class JOLTComputerBoard():
 
         # Send frame
         with self._ser_access:
-            #logging.debug("Sending command %s", msg)
+            # logging.debug("Sending command %s", msg)
             self._serial.write(msg)
         
             # Parse status
@@ -598,6 +614,12 @@ class JOLTSimulator():
             self._sendStatus(ACK)
             self._sendAnswer(self.cold_plate_temp.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_OUTPUT_SINGLE_ENDED:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.output.to_bytes(4, 'little', signed=True))
+        elif com == CMD_GET_DIFFERENTIAL_PLUS_READING:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.output.to_bytes(4, 'little', signed=True))
+        elif com == CMD_GET_DIFFERENTIAL_MINUS_READING:
             self._sendStatus(ACK)
             self._sendAnswer(self.output.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_VACUUM_PRESSURE:

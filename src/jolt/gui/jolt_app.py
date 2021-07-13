@@ -98,6 +98,7 @@ class JoltApp(wx.App):
         # Get the threshold values from the configuration file if provided, otherwise use the default ones.
         self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
             self.load_config(section='SAFERANGE')
+        self.differential = self.load_config(section='SIGNAL')
         self.error = 8  # 8 means no error
         self.target_temp = 24
         self.voltage_gui = self.voltage
@@ -141,9 +142,8 @@ class JoltApp(wx.App):
             sys.exit(0)
             return
 
-        # Set hw output to single-ended
-        self.dev.set_signal_type(single_ended=True)
-
+        # Set hw output to either single-ended or differential
+        self.dev.set_signal_type(not self.differential)
         # Write gain, offset, channel parameters to device
         self.dev.set_gain(self.gain)
         self.dev.set_offset(self.offset)
@@ -213,6 +213,13 @@ class JoltApp(wx.App):
                 mppc_current = driver.SAFERANGE_MPCC_CURRENT
                 vacuum_pressure = driver.SAFERANGE_VACUUM_PRESSURE
             return mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure
+        if section == 'SIGNAL':
+            try:
+                differential = self.config.getboolean('SIGNAL', 'differential', fallback=False)
+            except Exception as ex:
+                logging.error("Invalid given value, falling back to default values, ex: %s", ex)
+                differential = False
+            return differential
         else:
             raise ValueError("No available section with name %s in the config file", section)
 
@@ -696,7 +703,10 @@ class JoltApp(wx.App):
         try:
             while not self.should_close.is_set():
                 # Get new values from the device
-                self.output = self.dev.get_output_single_ended()
+                if not self.differential:
+                    self.output = self.dev.get_output_single_ended()
+                else:
+                    self.output = self.dev.get_plus_reading_differential()
                 self.gain = self.dev.get_gain()
                 self.offset = self.dev.get_offset()
                 self.voltage = self.dev.get_voltage()

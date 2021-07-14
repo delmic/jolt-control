@@ -7,9 +7,18 @@ Customers of Delmic will receive executables for Windows 7 and 10.
 If you want to run the software from source, follow the instructions below.
 
 ### Prerequisites
-Install Python 3 on your computer and install the dependencies. This can be done with:
+Install Python 3 on your computer and install the dependencies.
+
+On Ubuntu, Python is already installed, so all that is needed is:
 
         pip3 install -r requirements.txt
+
+On Windows, get the miniconda installer from there: https://docs.conda.io/en/latest/miniconda.html .
+Then install miniconda, and run an anaconda terminal, go to the folder containing these sources. Then type:
+
+        conda create -y --name jolt python==3.6.13
+        conda activate jolt
+        pip install -r requirements.txt
 
 ### Running from Source
 You can run the software from source on both Linux and Windows.
@@ -42,6 +51,9 @@ or invalid inputs are inserted, the code updates the variables with some default
    heatsink_temp = (-20, 40)
    mppc_current = (-5000, 5000)
    vacuum_pressure = (0, 5)
+
+   [SIGNAL]
+   differential = False
 ```
 
 Note that the SAFERANGE variables are tuples of integers and they represent the lower and upper threshold value of the corresponding feature.

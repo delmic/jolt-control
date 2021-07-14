@@ -261,23 +261,23 @@ class JOLTComputerBoard():
     
     def get_output_single_ended(self):
         """
-        :returns: (0 <= int <= 100): single-ended output
+        :returns: (0 <= float <= 100): single-ended output
         """
-        b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 5e6
+        b = self._send_query(CMD_GET_OUTPUT_SINGLE_ENDED)  # 4 bytes, 0 - 4095
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
 
     def get_plus_reading_differential(self):
         """
-        :returns: (0 <= int <= 100): single-ended output
+        :returns: (0 <= float <= 100): differential output, plus side
         """
-        b = self._send_query(CMD_GET_DIFFERENTIAL_PLUS_READING)  # 4 bytes, 0 - 5e6
+        b = self._send_query(CMD_GET_DIFFERENTIAL_PLUS_READING)  # 4 bytes, 0 - 4095
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
 
     def get_minus_reading_differential(self):
         """
-        :returns: (0 <= int <= 100): single-ended output
+        :returns: (0 <= float <= 100): differential output, minus side
         """
-        b = self._send_query(CMD_GET_DIFFERENTIAL_MINUS_READING)  # 4 bytes, 0 - 5e6
+        b = self._send_query(CMD_GET_DIFFERENTIAL_MINUS_READING)  # 4 bytes, 0 - 4095
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
 
     def get_vacuum_pressure(self):

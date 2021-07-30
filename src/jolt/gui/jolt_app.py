@@ -600,9 +600,6 @@ class JoltApp(wx.App):
             self.spinctrl_gain.Enable(False)
             self.spinctrl_offset.Enable(False)
 
-        # Auto BC not implemented yet
-        self.btn_auto_bc.Enable(False)
-
         # Show we are in debug mode
         if self.debug_mode:
             self.power_label.SetLabel("Power\tDEBUG MODE")

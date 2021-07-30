@@ -282,6 +282,7 @@
 						<object class="wxButton" name="btn_AutoBC">
 							<label>Auto BC</label>
 							<default>0</default>
+							<hidden>1</hidden>
 							<markup>0</markup>
 							<bitmap />
 						</object>

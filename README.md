@@ -49,18 +49,23 @@ or invalid inputs are inserted, the code updates the variables with some default
    [SAFERANGE]
    mppc_temp_rel = (-1, 1)
    heatsink_temp = (-20, 40)
-   mppc_current = (-5000, 5000)
    vacuum_pressure = (0, 5)
 
    [SIGNAL]
    differential = False
 ```
 
-Note that the SAFERANGE variables are tuples of integers and they represent the lower and upper threshold value of the corresponding feature.
-The mppc_temp_rel corresponds to the MPPC temperature range, relative to the target temperature, in °C.
-Note that an integer value should be given for the TARGET MPPC temperature.
+The SAFERANGE variables represent the lower and upper threshold value of the
+corresponding feature. They are written between parenthesis and separated by a comma.
+The mppc_temp_rel corresponds to the MPPC temperature range, relative to the target
+temperature, in °C. The vaccum pressure is in mbar. Note that the TARGET and
+SAFERANGE settings only accept *integer* values.
 
-If ambient is set to `True`, then the target mppc_temp is 15°C and no check is done on the pressure.
+If ambient is set to `True`, then the target mppc_temp is automatically set to
+15°C and no check is done on the pressure.
+
+When SIGNAL/differential is set to `True`, the analog output of the JOLT,
+going to the SEM input, is configured to be represented as a differential voltage.
 
 ## Developer Information
 More information for Delmic software developers can be found in the `doc/` folder.

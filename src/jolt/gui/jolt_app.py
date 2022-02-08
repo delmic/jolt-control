@@ -27,7 +27,6 @@ from jolt.util import log, call_in_wx_main
 import logging
 from logging.handlers import RotatingFileHandler
 import os
-from shutil import copyfile
 import sys
 import threading
 import time
@@ -96,6 +95,7 @@ class JoltApp(wx.App):
         # otherwise use the default one.
         self.target_mppc_temp = self.load_config(section='TARGET')
         # Get the threshold values from the configuration file if provided, otherwise use the default ones.
+        # TODO: saferange_mppc_current is unused => use it too... but comparing with which reading?
         self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
             self.load_config(section='SAFERANGE')
         self.differential = self.load_config(section='SIGNAL')

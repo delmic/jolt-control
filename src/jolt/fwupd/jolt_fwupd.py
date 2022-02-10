@@ -253,7 +253,7 @@ class FirmwareUpdater(wx.App):
                     self.serial.close()
                     self.serial = Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
-                self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
+                self.display_msg_dialog("Upload failed. Please contact Delmic (https://support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
                 return
  
             print("\nComputer Board Firmware uploaded successfully.\n\n")
@@ -297,7 +297,7 @@ class FirmwareUpdater(wx.App):
                     self.serial.close()
                     self.serial = Serial(self.portname, baudrate=9600, xonxoff=False)
             else:
-                self.display_msg_dialog("Upload failed. Please contact Delmic (www.support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
+                self.display_msg_dialog("Upload failed. Please contact Delmic (https://support.delmic.com) and attach the output from the console.", 'Error', wx.OK | wx.ICON_ERROR)
                 return
             print("Frontend Board Firmware uploaded successfully.\n\n")
             fb_success = True

@@ -35,7 +35,7 @@ import warnings
 from wx import xrc
 import wx
 import wx.adv
-from pkg_resources import resource_filename
+from pkg_resources import resource_filename, resource_stream
 
 # Start simulator if environment variable is set
 TEST_NOHW = (os.environ.get("TEST_NOHW", 0) != 0)  # Default to Hw testing
@@ -109,7 +109,7 @@ class JoltApp(wx.App):
         self.hv = False
 
         # Initialize wx components
-        super().__init__(self)
+        super().__init__(redirect=False)
         self.init_dialog()
 
         # Start driver
@@ -334,16 +334,21 @@ class JoltApp(wx.App):
         self.txtbox_vacuumPressure = xrc.XRCCTRL(self.dialog, 'txtbox_vacuumPressure')
 
         # log display
+        # FIXME: at init, the CollapsiblePane is collapsed but still takes space
         self.btn_viewLog = xrc.XRCCTRL(self.dialog, 'btn_viewLog', wx.CollapsiblePane)
         self.dialog.Bind(wx.EVT_COLLAPSIBLEPANE_CHANGED, self.on_collapse_log, id=xrc.XRCID('btn_viewLog'))
 
         # catch the closing event
         self.dialog.Bind(wx.EVT_CLOSE, self.on_close)
         
-        # debug mode: allow F5 shortcut to enable all controls
+        # Debug mode: allow F5 + "delmic" password to enable all controls
+        # Inspection window: Ctrl+I (in debug mode) to show GUI controls
         f5_id = 1
+        inspect_id = 2
         self.dialog.Bind(wx.EVT_MENU, self.on_f5, id=f5_id)
-        accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id)])
+        self.dialog.Bind(wx.EVT_MENU, self.on_inspect, id=inspect_id)
+        accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id),
+                                         (wx.ACCEL_CTRL, ord('I'), inspect_id)])
         self.dialog.SetAcceleratorTable(accel_tbl)
         self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')  # will be updated in debug mode
         self.txtbox_output.SetFocus()  # if focus is None, the f5 event is not captured, so set focus to a textbox
@@ -353,17 +358,15 @@ class JoltApp(wx.App):
         self.dialog.SetTitle(title)
 
         # Load bitmaps
-        self.bmp_off = wx.Bitmap(resource_filename('jolt.gui', "img/icon_toggle_off.png"))
-        self.bmp_on = wx.Bitmap(resource_filename('jolt.gui', "img/icon_toggle_on.png"))
-        self.bmp_icon = wx.Bitmap(resource_filename('jolt.gui', "img/icon_jolt.png"))
+        self.bmp_off = wx.Bitmap(wx.Image(resource_stream('jolt.gui', "img/icon_toggle_off.png")))
+        self.bmp_on = wx.Bitmap(wx.Image(resource_stream('jolt.gui', "img/icon_toggle_on.png")))
+        self.bmp_icon = wx.Bitmap(wx.Image(resource_stream('jolt.gui', "img/icon_jolt.png")))
 
         # set icon
-        icon = wx.Icon()
-        icon.CopyFromBitmap(self.bmp_icon)
+        icon = wx.Icon(self.bmp_icon)
         self.dialog.SetIcon(icon)
 
         self.dialog.Show()
-        self.refresh()
 
     @call_in_wx_main
     def on_f5(self, event):
@@ -469,6 +472,11 @@ class JoltApp(wx.App):
 
     def on_power(self, event):
         self.toggle_power()
+
+    def on_inspect(self, event):
+        if self.debug_mode:
+            from wx.lib.inspection import InspectionTool
+            InspectionTool().Show()
 
     def toggle_power(self):
         if self.ctl_power.IsEnabled():

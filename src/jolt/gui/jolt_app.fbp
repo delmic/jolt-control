@@ -543,7 +543,7 @@
                 <object class="sizeritem" expanded="1">
                     <property name="border">5</property>
                     <property name="flag">wxALL|wxEXPAND</property>
-                    <property name="proportion">3</property>
+                    <property name="proportion">0</property>
                     <object class="wxStaticBoxSizer" expanded="1">
                         <property name="id">wxID_ANY</property>
                         <property name="label">Settings</property>
@@ -552,17 +552,6 @@
                         <property name="orient">wxVERTICAL</property>
                         <property name="parent">1</property>
                         <property name="permission">none</property>
-                        <object class="sizeritem" expanded="1">
-                            <property name="border">5</property>
-                            <property name="flag">wxEXPAND|wxALL</property>
-                            <property name="proportion">0</property>
-                            <object class="wxBoxSizer" expanded="1">
-                                <property name="minimum_size"></property>
-                                <property name="name">bSizer6</property>
-                                <property name="orient">wxHORIZONTAL</property>
-                                <property name="permission">none</property>
-                            </object>
-                        </object>
                         <object class="sizeritem" expanded="1">
                             <property name="border">5</property>
                             <property name="flag">wxEXPAND</property>
@@ -1307,7 +1296,7 @@
                 <object class="sizeritem" expanded="1">
                     <property name="border">5</property>
                     <property name="flag">wxEXPAND|wxALL</property>
-                    <property name="proportion">3</property>
+                    <property name="proportion">0</property>
                     <object class="wxStaticBoxSizer" expanded="1">
                         <property name="id">wxID_ANY</property>
                         <property name="label">Properties</property>

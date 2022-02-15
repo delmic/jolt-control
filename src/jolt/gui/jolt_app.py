@@ -98,7 +98,10 @@ class JoltApp(wx.App):
         # TODO: saferange_mppc_current is unused => use it too... but comparing with which reading?
         self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
             self.load_config(section='SAFERANGE')
-        self.differential = self.load_config(section='SIGNAL')
+        self.differential, self.rgb_filter = self.load_config(section='SIGNAL')
+        if not self.rgb_filter:
+            # Force the channel to panchromatic. The channel selection will be hidden.
+            self.channel = "Pan"
         self.error = 8  # 8 means no error
         self.target_temp = 24
         self.voltage_gui = self.voltage
@@ -168,6 +171,7 @@ class JoltApp(wx.App):
                   (float): mppc_temp if section 'TARGET'
                   (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure if
                   section 'SAFERANGE'
+                  (bool, bool): if section is 'SIGNAL'
         """
         if self.config is None:
             self.config = configparser.ConfigParser(converters={'tuple': self.get_tuple})
@@ -216,10 +220,12 @@ class JoltApp(wx.App):
         if section == 'SIGNAL':
             try:
                 differential = self.config.getboolean('SIGNAL', 'differential', fallback=False)
+                rgb_filter = self.config.getboolean('SIGNAL', 'rgb_filter', fallback=True)
             except Exception as ex:
-                logging.error("Invalid given value, falling back to default values, ex: %s", ex)
+                logging.error("Invalid SIGNAL value, falling back to default values, ex: %s", ex)
                 differential = False
-            return differential
+                rgb_filter = True
+            return differential, rgb_filter
         else:
             raise ValueError("No available section with name %s in the config file", section)
 
@@ -314,6 +320,12 @@ class JoltApp(wx.App):
         self.channel_ctrl = xrc.XRCCTRL(self.dialog, 'radio_channel')
         self.channel_ctrl.SetSelection(0)
         self.dialog.Bind(wx.EVT_RADIOBOX, self.on_radiobox, id=xrc.XRCID('radio_channel'))
+
+        # Hide if panchromatic
+        if not self.rgb_filter:
+            channel_label = xrc.XRCCTRL(self.dialog, 'm_staticText7')
+            self.channel_ctrl.Hide()
+            channel_label.Hide()
 
         # live displays
         self.txtbox_output = xrc.XRCCTRL(self.dialog, 'txtbox_current')

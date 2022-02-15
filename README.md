@@ -53,6 +53,7 @@ or invalid inputs are inserted, the code updates the variables with some default
 
    [SIGNAL]
    differential = False
+   rgb_filter = True
 ```
 
 The SAFERANGE variables represent the lower and upper threshold value of the
@@ -66,6 +67,7 @@ If ambient is set to `True`, then the target mppc_temp is automatically set to
 
 When SIGNAL/differential is set to `True`, the analog output of the JOLT,
 going to the SEM input, is configured to be represented as a differential voltage.
+When SIGNAL/rgb_filter is set to `False`, the channel is restricted to panchromatic.
 
 ## Developer Information
 More information for Delmic software developers can be found in the `doc/` folder.

@@ -126,12 +126,10 @@
 						<flag>wxALL|wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxTextCtrl" name="m_textCtrl5">
-							<style>wxTE_CHARWRAP|wxTE_MULTILINE|wxVSCROLL</style>
+							<style>wxTE_READONLY|wxTE_MULTILINE|wxTE_CHARWRAP|wxVSCROLL</style>
 							<size>-1,300</size>
 							<bg>#000000</bg>
 							<fg>#ffffff</fg>
-							<value></value>
-							<maxlength>0</maxlength>
 						</object>
 					</object>
 				</object>

@@ -32,7 +32,6 @@ from wx import xrc
 import wx
 from pkg_resources import resource_filename
 
-
 COMPUTER_BOARD = 0
 FIRMWARE_BOARD = 1
 UPDATE = 0
@@ -63,7 +62,7 @@ class FirmwareUpdater(wx.App):
         self._user_ok = False
         
         # Initialize wx components
-        super().__init__(self)
+        super().__init__(redirect=False)
         self.dialog.Show()
 
         # Check that JoltApp is not running

@@ -27,6 +27,13 @@ To do so, the environment variable \texttt{TEST\_NOHW} should be set to 1. On Li
 this means you can run it this way:\\
 \texttt{TEST\_NOHW=1 python3 src/jolt/gui/jolt\_app.py}
 
+On Windows:
+\texttt{set TEST\_NOHW=1}\\
+\texttt{python src/jolt/gui/jolt\_app.py}
+
+Extra features can be accessed by changing to the debug mode. To do so, press F5, and then enter "delmic" as password.
+It's possible to access the wxPython inspection panel by pressing Ctrl+I.
+
 \section{EOISerial command line tool}
 For debugging purposes, there exists a command line tool that communicates with the computer board called \texttt{EOISerial}. Open the folder in a terminal, add it to the pythonpath (\texttt{export PYTHONPATH=<path>:\$PYTHONPATH}) and type:\\
 \texttt{python3 cbcnt.py status}\\
@@ -82,23 +89,38 @@ In github it's possible to mark the last commit as a new release.
     \item Go to \texttt{https://github.com/delmic/jolt-control/releases} and click on \emph{Draft a new release} button.
     Define the release version, write a short description about the new additions and attach the signed jolt and firmware updater executable files.
     \item Update again the \texttt{\_\_version\_\_} to a development version, eg, "1.0.3-dev", commit, and push.
-    \item Add the new version to the release folder in Dropbox: Client and Product Data/Product Info/JOLT/Software Releases/
+    \item Add the new version to the release folder in Delmic's shared folder: Client and Product Data/Product Info/JOLT/Software Releases/
+    \item Upload the new files to the Delmic's website.
 \end{enumerate}
 
 
-\subsection{Building Windows Executables}
-For distribution, we package the source code into an .exe file with \texttt{pyinstaller}. This needs to be done on a computer with the operating system that the executable should eventually be executed in. Currently we support Windows 10 and Windows 7, so this process has to be repeated twice. The installation can be performed in a virtual machine. 
+\subsection{Setting up the Windows build environment}
+For distribution, we package the source code into an .exe file with \texttt{pyinstaller}.
+This needs to be done on a computer with the operating system that the executable should eventually be executed in.
+
+Currently, to support Windows 10 and Windows 7, the build has to be done on an old Windows 7 64 bits.
+The installation can be performed in a virtual machine.
 These are the steps:
 \begin{enumerate}
 	\item Install the Windows operating system in a virtual machine, e.g. VirtualBox.
-	\item Install Python 3 (e.g. 3.8, some older versions might also work)
-	\item Install pip
-	\item Use pip to install the dependencies: \texttt{pip3 install -r requirements.txt}. Note that on Linux, you need to remove the pywin32* dependencies.
-	\item Navigate in the file explorer to the \texttt{jolt-control/install/windows} directory
-	\item Double-click "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
-	\item The executable can be found in the \texttt{dist} folder.
-	\item All the executables should be signed.
+	\item Install git for Windows (from \texttt{https://gitforwindows.org/}).
+	\item Clone the Jolt repository from: \texttt{https://github.com/delmic/jolt-control.git}
+	\item Install Miniconda 64 bits.
+	\item Create a "jolt" environment with Python 3.6: \texttt{conda create -y --name jolt python==3.6.15}
+	\item Switch to that new environment: \texttt{conda activate jolt}
+	\item Install the dependencies: \texttt{conda install --name jolt --file requirements.txt}. (Note that on Linux, you need to remove the pywin32* dependencies.)
 \end{enumerate}
+
+\subsection{Building Windows Executables}
+\begin{enumerate}
+	\item Start a Miniconda terminal.
+	\item Activate the environment: \texttt{conda activate jolt}
+	\item Navigate to the \texttt{jolt-control/install/windows} directory.
+	\item Run "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
+	\item The executable can be found in the \texttt{dist} folder.
+	\item Sign digitally both executables, with \texttt{signtool}.
+\end{enumerate}
+
 Some tricks for tuning the virtualbox settings:
 \begin{itemize}
 	\item Set up serial port: Settings/Serial Ports: Enable serial port with port number "COM1" as "host device" with address "/dev/ttyUSBx". To get x, type "l /dev/ttyUSB*" into the terminal and use the one that comes up (in case the jolt is the only serial device that is connected to the computer).

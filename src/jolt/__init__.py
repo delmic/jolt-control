@@ -2,7 +2,7 @@
 '''
 Created on 15 October 2019
 @author: Anders Muskens
-Copyright © 2019-2021 Anders Muskens, Delmic
+Copyright © 2019-2022 Anders Muskens, Éric Piel, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
-__version__ = "1.1.0-dev"
+__version__ = "1.1.1"
 __fullname__ = "Delmic Jolt Control Software"
 __shortname__ = "Jolt"
-__copyright__ = "Copyright © 2019-2021 Delmic"
+__copyright__ = "Copyright © 2019-2022 Delmic"
 __authors__ = ["Éric Piel", "Philip Winkler", "Anders Muskens", "Victoria Mavrikopoulou"]

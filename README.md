@@ -69,6 +69,19 @@ When SIGNAL/differential is set to `True`, the analog output of the JOLT,
 going to the SEM input, is configured to be represented as a differential voltage.
 When SIGNAL/rgb_filter is set to `False`, the channel is restricted to panchromatic.
 
+## Configuration for the SNEL
+
+The SNEL doesn't require cooling and has no temperature sensor. So the ini file has to be adjusted after the first run (which creates the file) with these parameters:
+```
+   [DEFAULT]
+   ambient = True
+
+   [SAFERANGE]
+   mppc_temp_rel = (-100, -100)
+   heatsink_temp = (-100, 100)
+```
+
+
 ## Developer Information
 More information for Delmic software developers can be found in the `doc/` folder.
 For compiling the PDF install texlive, navigate to the folder in a terminal and type `pdflatex developer-doc.tex`.

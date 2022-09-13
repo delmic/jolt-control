@@ -205,6 +205,7 @@ class JOLTComputerBoard():
         # Gain must be between 0.5 and 64 V, scale from [0, 100]
         val = (val / 100 * 63.5) + 0.5
         if not 0.5 <= val <= 64:
+            # TODO: raise error instead of just logging
             logging.error("Gain %.6f out of range 0.5 <= gain <= 64." % val)
         b = int(val * 1e6).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_GAIN, b)

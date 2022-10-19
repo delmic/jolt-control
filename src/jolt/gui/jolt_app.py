@@ -45,10 +45,20 @@ logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', level=loggin
 
 POLL_INTERVAL = 1.0  # seconds
 SAVE_CONFIG = True  # save configuration before closing
-STR2CHANNEL = {"R": driver.CHANNEL_R, "G": driver.CHANNEL_G, "B": driver.CHANNEL_B,
-               "Pan": driver.CHANNEL_PAN, "OFF": driver.CHANNEL_OFF}
-CHANNEL2STR = {driver.CHANNEL_R: "R", driver.CHANNEL_G: "G", driver.CHANNEL_B: "B",
-                driver.CHANNEL_PAN: "Pan", driver.CHANNEL_OFF: "OFF"}
+STR2CHANNEL = {
+    "R": driver.Channel.RED,
+    "G": driver.Channel.GREEN,
+    "B": driver.Channel.BLUE,
+    "Pan": driver.Channel.PANCHROMATIC,
+    "OFF": driver.Channel.NONE,
+}
+CHANNEL2STR = {
+    driver.Channel.RED: "R",
+    driver.Channel.GREEN: "G",
+    driver.Channel.BLUE: "B",
+    driver.Channel.PANCHROMATIC: "Pan",
+    driver.Channel.NONE: "OFF",
+}
 
 MPPC_TEMP_POWER_OFF = 24  # degrees in °C
 MPPC_TEMP_DEBUG = 15   # degrees in °C
@@ -669,7 +679,7 @@ class JoltApp(wx.App):
         # Modify controls to show hardware values
         ch2sel = {"R": 0, "G": 1, "B": 2, "Pan": 3}
         try:
-            self.channel_ctrl.SetSelection(ch2sel[self.channel])  # fails if it's CHANNEL_OFF
+            self.channel_ctrl.SetSelection(ch2sel[self.channel])  # fails if it's Channel.NONE
         except:
             pass
         self.slider_gain.SetValue(self.gain)

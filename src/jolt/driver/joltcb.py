@@ -301,7 +301,7 @@ class JOLTComputerBoard():
 
     def set_channel(self, channel: Channel) -> None:
         """
-        :param val: Channel: color channel
+        :param channel: Channel: color channel
         :returns: (None)
         """
         if not isinstance(channel, Channel):

@@ -18,6 +18,7 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
+import enum
 import os
 import serial
 import logging
@@ -79,16 +80,18 @@ CMD_CB_ISP = 0xfe
 CMD_FW_ISP = 0xff
 CMD_PASSTHROUGH_MODE = 0x65
 
-CHANNEL_PAN = 7
-CHANNEL_R = 1
-CHANNEL_G = 4
-CHANNEL_B = 2
-CHANNEL_OFF = 0
-
 SAFERANGE_MPCC_CURRENT = (-5000, 5000)
 SAFERANGE_MPCC_TEMP = (-20, 20)  # °C
 SAFERANGE_HEATSINK_TEMP = (-20, 40)  # °C
 SAFERANGE_VACUUM_PRESSURE = (0, 5)  # mbar
+
+
+class Channel(enum.Flag):
+    NONE = 0
+    RED = 1
+    BLUE = 2
+    GREEN = 4
+    PANCHROMATIC = 7
 
 
 class JOLTError(Exception):
@@ -288,22 +291,22 @@ class JOLTComputerBoard():
         b = self._send_query(CMD_GET_VACUUM_PRESSURE)  # 4 bytes, 10e3 - 12e6
         return int.from_bytes(b, 'little', signed=True) * 1e-3
     
-    def get_channel(self):
+    def get_channel(self) -> Channel:
         """
-        :returns: (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN): color channel
+        :returns: Channel: color channel
         """
         b = self._send_query(CMD_GET_CHANNEL)  # 1 byte
-        return int.from_bytes(b, 'little', signed=True)
+        value = int.from_bytes(b, 'little', signed=True)
+        return Channel(value)
 
-    def set_channel(self, val):
+    def set_channel(self, channel: Channel) -> None:
         """
-        :param val: (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN): color channel
+        :param channel: Channel: color channel
         :returns: (None)
         """
-        if val not in (CHANNEL_R, CHANNEL_G, CHANNEL_B, CHANNEL_PAN):
-            logging.error("Unknown channel %s, needs to be %s, %s, %s, or %s." % (val, CHANNEL_R, CHANNEL_G,
-                                                                                     CHANNEL_B, CHANNEL_PAN))
-        b = val.to_bytes(1, 'little', signed=True)
+        if not isinstance(channel, Channel):
+            logging.error("Unknown channel %s, needs to be of type Channel.", channel)
+        b = channel.value.to_bytes(1, 'little', signed=True)
         self._send_cmd(CMD_SET_CHANNEL, b)
 
     def get_itec(self):
@@ -501,8 +504,7 @@ class JOLTSimulator():
         self.hot_plate_temp = int(35e6)  # µC
         self.output = int(800)  # µV
         self.vacuum_pressure = int(3e3)  # µBar
-        self.channel = CHANNEL_R
-        self.channels = str(CHANNEL_R) + str(CHANNEL_G) + str(CHANNEL_B)
+        self.channel = Channel.RED
         self.itec = int(10e6)
 
         self._temp_thread = None
@@ -629,10 +631,10 @@ class JOLTSimulator():
             self._sendAnswer(self.vacuum_pressure.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_CHANNEL:
             self._sendStatus(ACK)
-            self._sendAnswer(self.channel.to_bytes(1, 'little', signed=True))
+            self._sendAnswer(self.channel.value.to_bytes(1, 'little', signed=True))
         elif com == CMD_SET_CHANNEL:
             self._sendStatus(ACK)
-            self.channel = int.from_bytes(arg, 'little', signed=True)
+            self.channel = Channel(int.from_bytes(arg, 'little', signed=True))
         elif com == CMD_SET_DIFFERENTIAL_OUTPUT:
             self._sendStatus(ACK)
             # do nothing

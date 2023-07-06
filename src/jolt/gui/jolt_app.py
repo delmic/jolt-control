@@ -582,7 +582,7 @@ class JoltApp(wx.App):
 
     def on_offset_spin(self, event):
         offset = self.spinctrl_offset.GetValue()
-        self.slider_offset.SetValue(int(offset))
+        self.slider_offset.SetValue(int(round(offset)))
         self.dev.set_offset(offset)
         logging.debug("Changed offset to %s", offset)
         self.txtbox_output.SetFocus()
@@ -692,8 +692,8 @@ class JoltApp(wx.App):
             self.channel_ctrl.SetSelection(ch2sel[self.channel])  # fails if it's Channel.NONE
         except:
             pass
-        self.slider_gain.SetValue(self.gain)
-        self.slider_offset.SetValue(self.offset)
+        self.slider_gain.SetValue(int(round(self.gain)))
+        self.slider_offset.SetValue(int(round(self.offset)))
         # Don't refresh text controls that can be changed, it's annoying if you're trying to write
         # Also don't update voltage control when voltage is off, we want to be able to easily turn the
         # voltage on without readjusting the value.

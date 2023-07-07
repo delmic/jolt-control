@@ -74,6 +74,8 @@ CMD_SET_MPPC_TEMP = 0xb0
 CMD_GET_ITEC = 0xcd
 CMD_SET_DIFFERENTIAL_OUTPUT = 0xba
 CMD_SET_SINGLE_ENDED_OUTPUT = 0xbd
+CMD_GET_VOS_ADJ_SETTING = 0x9a  # Offset voltage on frontend board
+CMD_SET_VOS_ADJ_SETTING = 0x9b
 CMD_GET_ERROR = 0x9e
 
 CMD_CB_ISP = 0xfe
@@ -217,7 +219,7 @@ class JOLTComputerBoard():
         """
         :returns: (0 <= float <= 100) output offset
         """
-        b = self._send_query(CMD_GET_OFFSET)  # 4 bytes, -5e6 - 5e6
+        b = self._send_query(CMD_GET_OFFSET)  # 4 bytes
         offset = int.from_bytes(b, 'little', signed=True)
         offset = offset / 4095 * 100
         return offset
@@ -231,6 +233,28 @@ class JOLTComputerBoard():
         val = val / 100 * 4095
         b = int(val).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_OFFSET, b)
+
+    def get_frontend_offset(self):
+        """
+        :returns: (0 <= int <= 4095) Offset voltage on frontend board
+        """
+        # The command returns a uint32
+        # Offset is between 0 and 4095 (10 bits)
+        b = self._send_query(CMD_GET_VOS_ADJ_SETTING)  # 4 bytes
+        offset = int.from_bytes(b, 'little', signed=False)
+        return offset
+
+    def set_frontend_offset(self, val):
+        """
+        :param val: (0 <= int <= 4095) Offset voltage on frontend board
+        :returns: (None)
+        """
+        if not (0 <= val <= 4095):
+            raise ValueError(f"Frontend offset voltage should be between 0 and 4095, got {val}")
+        # The command takes a uint32
+        # Offset is between 0 and 4095 (10 bits)
+        b = int(val).to_bytes(4, 'little', signed=False)
+        self._send_cmd(CMD_SET_VOS_ADJ_SETTING, b)
     
     def get_mppc_temp(self):
         """
@@ -506,6 +530,7 @@ class JOLTSimulator():
         self.vacuum_pressure = int(3e3)  # µBar
         self.channel = Channel.RED
         self.itec = int(10e6)
+        self.fe_offset = int(513)
 
         self._temp_thread = None
         self._stop_thread = False  # temperature thread
@@ -593,6 +618,12 @@ class JOLTSimulator():
         elif com == CMD_SET_OFFSET:
             self._sendStatus(ACK)
             self.offset = int.from_bytes(arg, 'little', signed=True)
+        elif com == CMD_GET_VOS_ADJ_SETTING:
+            self._sendStatus(ACK)
+            self._sendAnswer(self.fe_offset.to_bytes(4, 'little', signed=False))
+        elif com == CMD_SET_VOS_ADJ_SETTING:
+            self._sendStatus(ACK)
+            self.fe_offset = int.from_bytes(arg, 'little', signed=False)
         elif com == CMD_GET_GAIN:
             self._sendStatus(ACK)
             self._sendAnswer(self.gain.to_bytes(4, 'little', signed=True))

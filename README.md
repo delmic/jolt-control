@@ -62,8 +62,11 @@ The mppc_temp_rel corresponds to the MPPC temperature range, relative to the tar
 temperature, in °C. The vaccum pressure is in mbar. Note that the TARGET and
 SAFERANGE settings only accept *integer* values.
 
-If ambient is set to `True`, then the target mppc_temp is automatically set to
+If DEFAULT/ambient is set to `True`, then the target mppc_temp is automatically set to
 15°C and no check is done on the pressure.
+The DEFAULT section also accepts a front_offset option, which, if set, changes the
+front-end offset voltage. It accepts values between 0 and 4095. The default value
+is automatically calibrated at initialization, and is in most cases correct.
 
 When SIGNAL/differential is set to `True`, the analog output of the JOLT,
 going to the SEM input, is configured to be represented as a differential voltage.

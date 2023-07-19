@@ -86,6 +86,11 @@ The SNEL doesn't require cooling and has no temperature sensor. So the ini file 
 More information for Delmic software developers can be found in the `doc/` folder.
 For compiling the PDF install texlive, navigate to the folder in a terminal and type `pdflatex developer-doc.tex`.
 
+In the GUI the following shortcuts provide access to extra tools:
+ * Debug mode: F5 + "delmic" password to enable all controls
+ * Inspection window: Ctrl+I (in debug mode) to show GUI controls
+
+
 ## Links
 #### NXPISP Repository
 We use a modified version of the NXPISP repository from ElectroOptical Innovations for programming the NXP Cortex-M Chips:

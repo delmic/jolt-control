@@ -59,6 +59,11 @@ class TestDriver(unittest.TestCase):
         offset = self.jolt.get_offset()
         self.assertAlmostEqual(offset, 99, places=1)
 
+        # Frontend offset
+        self.jolt.set_frontend_offset(4000)
+        offset = self.jolt.get_frontend_offset()
+        self.assertEqual(offset, 4000)
+
 
 if __name__ == "__main__":
     unittest.main()

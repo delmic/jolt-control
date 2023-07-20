@@ -99,7 +99,9 @@ class JoltApp(wx.App):
 
         self.config = None
         # Initialize values
-        self.voltage, self.gain, self.offset, self.channel, self.ambient = self.load_config(section='DEFAULT')
+        self.voltage, self.gain, self.offset, self.channel, fe_offset, self.ambient = self.load_config(section='DEFAULT')
+        # ambient == True means that the device should only be cooling down
+        # to 15°C and the pressure is left unchecked.
         self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.output = (0, 0, 0, 0)
         # Get the target mppc temperature from the configuration file if provided,
         # otherwise use the default one.
@@ -161,6 +163,10 @@ class JoltApp(wx.App):
         self.dev.set_gain(self.gain)
         self.dev.set_offset(self.offset)
         self.dev.set_channel(STR2CHANNEL[self.channel])
+        if fe_offset is not None:
+            old_fe_offset = self.dev.get_frontend_offset()
+            logging.debug("Changing front-end offset from %s to %s", old_fe_offset, fe_offset)
+            self.dev.set_frontend_offset(fe_offset)
 
         # Start the thread for polling
         self.polling_thread = threading.Thread(target=self.do_poll)
@@ -175,13 +181,16 @@ class JoltApp(wx.App):
         """
         Reads configuration file
         section (str): the part of the configuration file to read
-        :returns: (float, float, float, str): voltage, gain, offset, channel if section 'DEFAULT'
-                    ambient is True means that the device should only be cooling 
-                    down only to 15°C and the pressure is left unchecked.
-                  (float): mppc_temp if section 'TARGET'
-                  (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure if
-                  section 'SAFERANGE'
-                  (bool, bool): if section is 'SIGNAL'
+        :returns:
+        if section is "DEFAULT":
+            (float, float, float, str, int | None, bool): voltage, gain, offset,
+                channel, font-end offset, ambient
+        if section 'TARGET':
+            (float): mppc_temp
+        if section 'SAFERANGE':
+            (tuple, tuple, tuple, tuple): mppc_temp_rel, heatsink_temp, mppc_current, vacuum_pressure
+        if section is 'SIGNAL':
+           (bool, bool): differential, rgb_filter
         """
         if self.config is None:
             self.config = configparser.ConfigParser(converters={'tuple': self.get_tuple})
@@ -193,6 +202,7 @@ class JoltApp(wx.App):
                 gain = self.config.getfloat('DEFAULT', 'gain', fallback=0.0)
                 offset = self.config.getfloat('DEFAULT', 'offset', fallback=0.0)
                 channel = self.config.get('DEFAULT', 'channel', fallback="R")
+                fe_offset = self.config.getint('DEFAULT', 'front_offset', fallback=None)
                 # TODO: ambient is not really needed, as it could be replicated by
                 # setting the target temperature to 15 and the pressure range to a very wide range.
                 ambient = self.config.get('DEFAULT', 'ambient', fallback=False)
@@ -201,7 +211,7 @@ class JoltApp(wx.App):
                 voltage, gain, offset, channel, ambient = (0.0, 0.0, 0.0, "R", False)
             if channel not in ["R", "G", "B", "Pan"]:
                 channel = "R"
-            return voltage, gain, offset, channel, ambient
+            return voltage, gain, offset, channel, fe_offset, ambient
         elif section == 'TARGET':
             try:
                 mppc_temp = self.config.getint('TARGET', 'mppc_temp', fallback=MPPC_TEMP_POWER_ON)

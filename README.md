@@ -3,7 +3,7 @@
 This repository contains the control software for Delmic's Jolt system.
 
 ## Getting Started
-Customers of Delmic will receive executables for Windows 7 and 10.
+Customers of Delmic will receive an executable (supported on Windows 7 and 10).
 If you want to run the software from source, follow the instructions below.
 
 ### Prerequisites
@@ -19,6 +19,9 @@ Then install miniconda, and run an anaconda terminal, go to the folder containin
         conda create -y --name jolt python==3.6.13
         conda activate jolt
         pip install -r requirements.txt
+
+You might also need to install the driver for the FTDI USB to Serial adpater.
+It can be found here: https://ftdichip.com/drivers/d2xx-drivers/ .
 
 ### Running from Source
 You can run the software from source on both Linux and Windows.

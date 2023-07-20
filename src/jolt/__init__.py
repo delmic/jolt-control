@@ -17,8 +17,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, see http://www.gnu.org/licenses/.
 '''
 
-__version__ = "1.1.1-dev"
+__version__ = "1.2.0"
 __fullname__ = "Delmic Jolt Control Software"
 __shortname__ = "Jolt"
-__copyright__ = "Copyright © 2019-2022 Delmic"
+__copyright__ = "Copyright © 2019-2023 Delmic"
 __authors__ = ["Éric Piel", "Philip Winkler", "Anders Muskens", "Victoria Mavrikopoulou"]

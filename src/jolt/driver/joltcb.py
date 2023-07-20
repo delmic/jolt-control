@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: latin1 -*-
 '''
 Created on 1 Oct 2019
 @author: Philip Winkler
-Copyright © 2019 Philip Winkler, Delmic
+Copyright Â© 2019 Philip Winkler, Delmic
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -83,8 +82,8 @@ CMD_FW_ISP = 0xff
 CMD_PASSTHROUGH_MODE = 0x65
 
 SAFERANGE_MPCC_CURRENT = (-5000, 5000)
-SAFERANGE_MPCC_TEMP = (-20, 20)  # °C
-SAFERANGE_HEATSINK_TEMP = (-20, 40)  # °C
+SAFERANGE_MPCC_TEMP = (-20, 20)  # Â°C
+SAFERANGE_HEATSINK_TEMP = (-20, 40)  # Â°C
 SAFERANGE_VACUUM_PRESSURE = (0, 5)  # mbar
 
 
@@ -520,14 +519,14 @@ class JOLTSimulator():
 
         # TODO: use reasonable numbers
         self.power = False
-        self.voltage = int(-12e6)  # µV
-        self.offset = int(5e6)  # µV
-        self.gain = int(10e6)  # µV
-        self.mppc_temp = int(30e6)  # µC
-        self.cold_plate_temp = int(24e6)  # µC
-        self.hot_plate_temp = int(35e6)  # µC
-        self.output = int(800)  # µV
-        self.vacuum_pressure = int(3e3)  # µBar
+        self.voltage = int(-12e6)  # ÂµV
+        self.offset = int(5e6)  # ÂµV
+        self.gain = int(10e6)  # ÂµV
+        self.mppc_temp = int(30e6)  # ÂµC
+        self.cold_plate_temp = int(24e6)  # ÂµC
+        self.hot_plate_temp = int(35e6)  # ÂµC
+        self.output = int(800)  # ÂµV
+        self.vacuum_pressure = int(3e3)  # ÂµBar
         self.channel = Channel.RED
         self.itec = int(10e6)
         self.fe_offset = int(513)

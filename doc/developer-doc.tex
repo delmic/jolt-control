@@ -105,9 +105,10 @@ These are the steps:
 	\item Install the Windows operating system in a virtual machine, e.g. VirtualBox.
 	\item Install git for Windows (from \texttt{https://gitforwindows.org/}).
 	\item Clone the Jolt repository from: \texttt{https://github.com/delmic/jolt-control.git}
-	\item Install Miniconda 64 bits.
-	\item Create a "jolt" environment with Python 3.6: \texttt{conda create -y --name jolt python==3.6.15}
+	\item Install Miniconda 64 bits. For Windows 7, it should be using Python 3.7 or 3.8, before 2022. They can be found here: \texttt{https://repo.anaconda.com/miniconda/}
+	\item Create a "jolt" environment with Python 3.6: \texttt{conda create -y --name jolt python==3.6.13}
 	\item Switch to that new environment: \texttt{conda activate jolt}
+	\item Add the extra "forge" channel (for timeout-decorator): \texttt{conda config --append channels conda-forge}
 	\item Install the dependencies: \texttt{conda install --name jolt --file requirements.txt}. (Note that on Linux, you need to remove the pywin32* dependencies.)
 \end{enumerate}
 
@@ -118,7 +119,7 @@ These are the steps:
 	\item Navigate to the \texttt{jolt-control/install/windows} directory.
 	\item Run "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
 	\item The executable can be found in the \texttt{dist} folder.
-	\item Sign digitally both executables, with \texttt{signtool}.
+	\item Sign digitally both executables, with \texttt{signtool}: \texttt{signtool sign /fd SHA256 /t http://timestamp.digicert.com }\emph{PATH-TO-EXECUTABLE.exe}
 \end{enumerate}
 
 Some tricks for tuning the virtualbox settings:

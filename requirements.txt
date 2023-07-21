@@ -1,5 +1,5 @@
 wxpython<4.1.0
-timeout_decorator
+timeout-decorator  # timeout_decorator on pip
 decorator
 pyserial<4.0
 click<=8.0

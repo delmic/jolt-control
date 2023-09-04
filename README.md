@@ -68,7 +68,7 @@ SAFERANGE settings only accept *integer* values.
 If DEFAULT/ambient is set to `True`, then the target mppc_temp is automatically set to
 15°C and no check is done on the pressure.
 The DEFAULT section also accepts a front_offset option, which, if set, changes the
-front-end offset voltage. It accepts values between 0 and 4095. The default value
+front-end offset voltage. It accepts values between 0 and 1023. The default value
 is automatically calibrated at initialization, and is in most cases correct.
 
 When SIGNAL/differential is set to `True`, the analog output of the JOLT,

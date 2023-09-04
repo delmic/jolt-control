@@ -235,26 +235,26 @@ class JOLTComputerBoard():
 
     def get_frontend_offset(self):
         """
-        :returns: (0 <= int <= 4095) Offset voltage on frontend board
+        :returns: (0 <= int <= 1023) Offset voltage on frontend board
         """
         # The command returns a uint32
-        # Offset is between 0 and 4095 (10 bits)
+        # Offset is between 0 and 1023 (10 bits)
         b = self._send_query(CMD_GET_VOS_ADJ_SETTING)  # 4 bytes
         offset = int.from_bytes(b, 'little', signed=False)
         return offset
 
     def set_frontend_offset(self, val):
         """
-        :param val: (0 <= int <= 4095) Offset voltage on frontend board
+        :param val: (0 <= int <= 1023) Offset voltage on frontend board
         :returns: (None)
         """
-        if not (0 <= val <= 4095):
-            raise ValueError(f"Frontend offset voltage should be between 0 and 4095, got {val}")
+        if not (0 <= val <= 1023):
+            raise ValueError(f"Frontend offset voltage should be between 0 and 1023, got {val}")
         # The command takes a uint32
-        # Offset is between 0 and 4095 (10 bits)
+        # Offset is between 0 and 1023 (10 bits)
         b = int(val).to_bytes(4, 'little', signed=False)
         self._send_cmd(CMD_SET_VOS_ADJ_SETTING, b)
-    
+
     def get_mppc_temp(self):
         """
         :returns: (-20 <= float <= 70): temperature in C

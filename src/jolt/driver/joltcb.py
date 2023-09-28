@@ -37,7 +37,17 @@ ID_STATUS = b"\x53"  # packet identifier command
 ID_ASCII = b"\x4D"  # packet identifier ascii message
 ID_BIN = b"\x04"  # packet identifier binary message
 
-ERROR_CODE_OK = 8  # 8 means everything OK
+# Error codes, as defined in FrontEndBoard/SystemMediator.h:FaultState
+class FrontEndErrorCodes(enum.Enum):
+    P5OutOfRange = 0
+    M5OutOfRange = 1
+    VBiasOutOfRange = 2
+    HotPlateTemperatureOutOfRange = 3
+    ColdPlateTemperatureOutOfRange = 4
+    PGACalibrationFailed = 5
+    PressureOutOfRange = 6
+    TPressureOutOfRange =7
+    NoFault = 8  # means everything OK
 
 CMD_GET_VERSION = 0x60
 CMD_GET_FIRMWARE_VER = 0x61
@@ -75,7 +85,9 @@ CMD_SET_DIFFERENTIAL_OUTPUT = 0xba
 CMD_SET_SINGLE_ENDED_OUTPUT = 0xbd
 CMD_GET_VOS_ADJ_SETTING = 0x9a  # Offset voltage on frontend board
 CMD_SET_VOS_ADJ_SETTING = 0x9b
-CMD_GET_ERROR = 0x9e
+CMD_GET_ERROR = 0x9e  # FrontEnd fault state
+CMD_GET_SYSTEM_STATE = 0xd0
+CMD_GET_FAULT_STATE = 0xd1  # ComputerBoard fault state
 
 CMD_CB_ISP = 0xfe
 CMD_FW_ISP = 0xff
@@ -676,7 +688,8 @@ class JOLTSimulator():
             self._sendAnswer(self.itec.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_ERROR:
             self._sendStatus(ACK)
-            self._sendAnswer(ERROR_CODE_OK.to_bytes(1, 'little', signed=False))
+            error = FrontEndErrorCodes.NoFault.value
+            self._sendAnswer(error.to_bytes(1, 'little', signed=False))
         elif com == CMD_CALL_AUTO_BC:
             self._sendStatus(ACK)
             # do nothing

@@ -33,7 +33,7 @@ NAK = b"\x15"
 US = b"\x1F"  # unit separator
 ETX = b"\x03"  # end of text
 ID_CMD = b"\x43"  # packet identifier command
-ID_STATUS = b"\x53"  # packet identifier command
+ID_STATUS = b"\x53"  # packet identifier status
 ID_ASCII = b"\x4D"  # packet identifier ascii message
 ID_BIN = b"\x04"  # packet identifier binary message
 
@@ -128,6 +128,9 @@ class JOLTComputerBoard():
         """
         :returns: (str) frontend serial number
         """
+        # FIXME: it seems to include the "\0" character.
+        # Need to decide whether that's removed automatically by _send_query, or
+        # done explicitly here, at the callers.
         b = self._send_query(CMD_GET_FRONTEND_SERIAL_NUM)  # 40 bytes
         return b.decode('latin1')
 
@@ -494,27 +497,34 @@ class JOLTComputerBoard():
             # SOH + packet type + status code + US + status code + EOT
             stat = char = b""
             while char != EOT:
-                char = self._serial.read()
+                char = self._serial.read(1)
                 if not char:
                     raise IOError("Timeout after receiving %s" % stat)
                 stat += char
             #logging.debug("Received status %s" % stat)
+            # TODO: validate status is ACK
 
             # Read response
+            # SOH + packet type + length + US + message + EOT
             resp = b''
             resp += self._serial.read(2)  # SOH, message type
-            if resp[1] == ord(b'M'):  # message type
+            message_type = resp[1:2]
+            if message_type == ID_ASCII:  # String message
                 char = b""
-                while resp[-1] != ord(EOT):
+                while resp[-2:-1] != EOT:
                     resp += self._serial.read()
                 ret = resp[3:-2]
-            else:  # binary type
-                l = self._serial.read()  # argument length
+            # TODO: explicitly check for the type, and raise an error (but still try to read up to EOT)
+            # elif message_type == ID_BIN:  # Binary data
+            else:
+                l = self._serial.read(1)  # argument length
                 resp += l
                 l = int.from_bytes(l, 'little', signed=True)
                 resp += self._serial.read(1)  # US
+                # TODO: validate this is "US"
                 resp += self._serial.read(l)  # message
                 resp += self._serial.read(1)  # EOT
+                # TODO: validate this is EOT
                 ret = resp[4:-1]
             #logging.debug("Received response %s" % resp)
             return ret

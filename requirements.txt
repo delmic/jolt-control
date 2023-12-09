@@ -6,6 +6,6 @@ click<=8.0
 appdirs
 # needed by appdirs, on Windows
 pywin32
-pyinstaller==4.2
+pyinstaller==5.13.1
 # needed by pyinstaller, on Windows
 pywin32-ctypes

@@ -16,9 +16,12 @@ On Ubuntu, Python is already installed, so all that is needed is:
 On Windows, get the miniconda installer from there: https://docs.conda.io/en/latest/miniconda.html .
 Then install miniconda, and run an anaconda terminal, go to the folder containing these sources. Then type:
 
-        conda create -y --name jolt python==3.6.13
+        conda create -y --name jolt python==3.6.8
         conda activate jolt
         pip install -r requirements.txt
+
+Note that based on operating system or environment (production or development), one can alter the requirements file.
+There are comments in the file on which sections to (un)comment.
 
 You might also need to install the driver for the FTDI USB to Serial adpater.
 It can be found here: https://ftdichip.com/drivers/d2xx-drivers/ .
@@ -57,6 +60,10 @@ or invalid inputs are inserted, the code updates the variables with some default
    [SIGNAL]
    differential = False
    rgb_filter = True
+
+   [CALIBRATION]
+   calibration_temps = (20, 15)
+   calibration_voltage_range = (30, 37, 1)
 ```
 
 The SAFERANGE variables represent the lower and upper threshold value of the

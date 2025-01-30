@@ -36,6 +36,9 @@ ID_CMD = b"\x43"  # packet identifier command
 ID_STATUS = b"\x53"  # packet identifier status
 ID_ASCII = b"\x4D"  # packet identifier ascii message
 ID_BIN = b"\x04"  # packet identifier binary message
+JOLT_V1_HW_IDENTIFIER = "rev. a"
+JOLT_V2_HW_IDENTIFIER = "rev. b"
+
 
 # Error codes, as defined in FrontEndBoard/SystemMediator.h:FaultState
 class FrontEndErrorCodes(enum.Enum):
@@ -60,6 +63,7 @@ CMD_GET_FRONTEND_COMPILE_DATE = 0x72
 CMD_GET_FRONTEND_COMPILE_TIME = 0x73
 CMD_GET_FRONTEND_SERIAL_NUM = 0x74
 CMD_GET_FRONTEND_VBIAS = 0x95
+CMD_GET_FRONTEND_OUTPUT_VOLTAGE = 0x8a  # Read output signal output voltage of frontend board
 CMD_GET_COLD_PLATE_TEMP = 0x8c
 CMD_GET_HOT_PLATE_TEMP = 0x8d
 CMD_CALL_AUTO_BC = 0x00
@@ -88,6 +92,9 @@ CMD_SET_VOS_ADJ_SETTING = 0x9b
 CMD_GET_ERROR = 0x9e  # FrontEnd fault state
 CMD_GET_SYSTEM_STATE = 0xd0
 CMD_GET_FAULT_STATE = 0xd1  # ComputerBoard fault state
+CMD_GET_TEMP_ERROR = 0xd3
+CMD_GET_TEMP_INTEGRAL = 0xd2
+
 
 CMD_CB_ISP = 0xfe
 CMD_FW_ISP = 0xff
@@ -117,23 +124,54 @@ class JOLTError(Exception):
     def __str__(self):
         return self.args[1]
 
+
 class JOLTComputerBoard():
-    
     def __init__(self, simulated=False):
         self._ser_access = threading.Lock()
+        # Let's see if it actually raises
         self._serial = self._find_device(simulated=simulated)
         self.counter = 0
-        
+
+        # Version handling
+        be_hw_version = self.get_be_hw_version().lower()
+        if JOLT_V1_HW_IDENTIFIER in be_hw_version:
+            logging.info("JOLT V1 detected")
+            self.version = 1
+        elif JOLT_V2_HW_IDENTIFIER in be_hw_version:
+            logging.info("JOLT V2 detected")
+            self.version = 2
+        else:
+            self.version = -1
+            logging.warning(f"Could not detect JOLT version for be_hw_version: {be_hw_version}")
+
+        # If JOLT V1 or unknown (probably also a V1)
+        if self.version <= 1:
+            self.voltage_range = (52, 70)
+        else:
+            # Set lower voltages for the JOLT V2.
+            self.voltage_range = (30, 37)  # Min useful / Max
+
+        self.adjust_voltage_thread = None
+        self.stop_adjust_voltage_event = threading.Event()
+
+    def sanitize(func):
+        """
+        Wrapper to sanitize strings obtained over serial connection. Most serial number and version getters seem to have
+        unwanted characters at the end. This is consistent per method, but the characters might differ between methods.
+        """
+        def wrapper(self, *args, **kwargs):
+            return func(self, *args, **kwargs).rstrip("\x00\x03")
+        return wrapper
+
+    @sanitize
     def get_fe_sn(self):
         """
         :returns: (str) frontend serial number
         """
-        # FIXME: it seems to include the "\0" character.
-        # Need to decide whether that's removed automatically by _send_query, or
-        # done explicitly here, at the callers.
         b = self._send_query(CMD_GET_FRONTEND_SERIAL_NUM)  # 40 bytes
         return b.decode('latin1')
 
+    @sanitize
     def get_fe_fw_version(self):
         """
         :returns: (str) frontend firmware version
@@ -141,6 +179,7 @@ class JOLTComputerBoard():
         b = self._send_query(CMD_GET_FRONTEND_FW_VER)  # 40 bytes
         return b.decode('latin1')
 
+    @sanitize
     def get_fe_hw_version(self):
         """
         :returns: (str) frontend hardware version
@@ -148,6 +187,7 @@ class JOLTComputerBoard():
         b = self._send_query(CMD_GET_FRONTEND_VER)  # 40 bytes
         return b.decode('latin1')
 
+    @sanitize
     def get_be_sn(self):
         """
         :returns: (str) backend serial number
@@ -155,13 +195,15 @@ class JOLTComputerBoard():
         b = self._send_query(CMD_GET_SERIAL_NUM)  # 40 bytes
         return b.decode('latin1')
 
+    @sanitize
     def get_be_fw_version(self):
         """
         :returns: (str) backend (computer board) firmware version
         """
         b = self._send_query(CMD_GET_FIRMWARE_VER)  # 40 bytes
         return b.decode('latin1')
-    
+
+    @sanitize
     def get_be_hw_version(self):
         """
         :returns: (str) backend (computer board) hardware version
@@ -186,49 +228,91 @@ class JOLTComputerBoard():
         :returns: (None)
         """
         raise NotImplementedError()
-    
+
     def get_voltage(self):
         """
         :returns: (0 <= float <= 80): vbias in V
         """
         b = self._send_query(CMD_GET_VOLTAGE)  # 4 bytes, -80e6 - 0
         return int.from_bytes(b, 'little', signed=True) * -1e-6
-    
-    def set_voltage(self, val):
+
+    def set_voltage(self, val: float) -> None:
         """
-        :param val: (0 <= float <= 80): vbias in V
+        :param val: (lower_bound <= float <= upper_bound): vbias in V
         :returns: (None)
         """
-        if not 0 <= val <= 80:
-            logging.error("Voltage %.6f out of range 0 <= vol <= 80." % val)
+        if not 0 <= val <= self.voltage_range[1]:
+            logging.warning(f"Voltage {val:.6f} out of range 0 <= vol <= {self.voltage_range[1]}")
         # Voltage is in fact negative, but this might be confusing in the GUI?
-        # Value needs to be between -80 and 0.
+        # Value needs to be between -upper and 0.
         val = -val
         b = int(val * 1e6).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_VOLTAGE, b)
-    
+
+    def adjust_voltage(self, target: float, timeout: float = 5) -> None:
+        """
+        Asynchronously adjusts the voltage to the target value within the specified timeout.
+
+        This function starts a new thread to adjust the voltage to the target value. If a previous adjustment
+        is still running, it will be stopped before starting a new one. The adjustment process will repeatedly
+        set the voltage and measure it until the target value is reached within a specified tolerance or the
+        timeout is exceeded.
+
+        :param target: The target voltage value to be reached (0 <= float <= max_voltage).
+        :param timeout: The maximum time in seconds to attempt adjusting the voltage.
+        :returns: None
+        :sideeffects: Starts a new thread to adjust the voltage.
+        """
+        def run():
+            voltage = target
+            voltage_delta = 1000  # Something large
+            start_time = time.time()
+            while abs(voltage_delta) > 0.01 and not self.stop_adjust_voltage_event.is_set():
+                self.set_voltage(voltage)
+                self.stop_adjust_voltage_event.wait(0.2)  # Wait to settle
+                measured_voltage = self.get_voltage()
+                logging.debug(f"Setting voltage (forced). Target: {target}, adjusted target: {voltage}, measured voltage: {measured_voltage}")
+                voltage_delta = target - measured_voltage
+                voltage += voltage_delta
+                if time.time() - start_time > timeout:
+                    logging.warning(f"Failed adjusting voltage to reach {target} V (currently {measured_voltage} V) within timeout ({timeout} s)")
+                    break
+
+        # Stop any existing thread
+        if self.adjust_voltage_thread and self.adjust_voltage_thread.is_alive():
+            self.stop_adjust_voltage_event.set()
+            self.adjust_voltage_thread.join(2)  # Wait for termination or timeout after 2 seconds
+
+        # Clear the stop event and start a new thread
+        self.stop_adjust_voltage_event.clear()
+        self.adjust_voltage_thread = threading.Thread(target=run)
+        self.adjust_voltage_thread.start()
+
     def get_gain(self):
         """
-        :returns: (0.5 <= float <= 64): PGA gain
+        :returns: (0 <= float <= 100): PGA gain percentage
         """
         b = self._send_query(CMD_GET_GAIN)  # 4 bytes, 5e5 - 64e6
         gain = int.from_bytes(b, 'little', signed=True) * 1e-6
         gain = (gain - 0.5) / 63.5 * 100
         return gain
-    
+
     def set_gain(self, val):
         """
-        :param val: (0.5 <= float <= 64): PGA gain to be set
+        :param val: (0 <= float <= 100): PGA gain percentage to be set
         :returns: (None)
         """
-        # Gain must be between 0.5 and 64 V, scale from [0, 100]
+        # Map percentage to a value between 0.5 and 64 V
         val = (val / 100 * 63.5) + 0.5
         if not 0.5 <= val <= 64:
             # TODO: raise error instead of just logging
-            logging.error("Gain %.6f out of range 0.5 <= gain <= 64." % val)
+            logging.error(f"Gain {val:.6f} out of range 0.5 <= gain <= 64.")
+            # Clip for now
+            val = 0.5 if val < 0.5 else 64
+            logging.error(f"Clipped gain to {val:.6f}")
         b = int(val * 1e6).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_GAIN, b)
-    
+
     def get_offset(self):
         """
         :returns: (0 <= float <= 100) output offset
@@ -245,6 +329,12 @@ class JOLTComputerBoard():
         """
         # Offset is between 0 and 4095 V, scale from [0, 100]
         val = val / 100 * 4095
+        if not 0 <= val <= 4095:
+            # TODO: raise error instead of just logging
+            logging.error(f"Offset {val:.6f} out of range 0 <= offset <= 4095")
+            # Clip for now
+            val = 0 if val < 0 else 4095
+            logging.error(f"Clipped offset to {val:.6f}")
         b = int(val).to_bytes(4, 'little', signed=True)
         self._send_cmd(CMD_SET_OFFSET, b)
 
@@ -270,13 +360,21 @@ class JOLTComputerBoard():
         b = int(val).to_bytes(4, 'little', signed=False)
         self._send_cmd(CMD_SET_VOS_ADJ_SETTING, b)
 
+    def get_frontend_output_voltage(self):
+        """
+        :returns: Signal output voltage on frontend board
+        """
+        # The command returns a int32
+        b = self._send_query(CMD_GET_FRONTEND_OUTPUT_VOLTAGE)
+        return int.from_bytes(b, 'little', signed=True) * 1e-6
+
     def get_mppc_temp(self):
         """
         :returns: (-20 <= float <= 70): temperature in C
         """
         b = self._send_query(CMD_GET_MPPC_TEMP)
         return int.from_bytes(b, 'little', signed=True) * 1e-6
-  
+
     def set_target_mppc_temp(self, val):
         """
         :param val: (-20 <= float <= 70): temperature in C
@@ -322,6 +420,18 @@ class JOLTComputerBoard():
         b = self._send_query(CMD_GET_DIFFERENTIAL_MINUS_READING)  # 4 bytes, 0 - 4095
         return int.from_bytes(b, 'little', signed=True) / 4095 * 100
 
+    def get_output_differential(self):
+        """
+        :returns: (-100 <= float <= 100): differential output
+        #TODO: investigate range, since it is not clear what this value represents
+        """
+        b = self._send_query(CMD_GET_DIFFERENTIAL_PLUS_READING)
+        plus = int.from_bytes(b, 'little', signed=True)
+        b = self._send_query(CMD_GET_DIFFERENTIAL_MINUS_READING)
+        minus = int.from_bytes(b, 'little', signed=True)
+
+        return (plus - minus) / 4095 * 100
+
     def get_vacuum_pressure(self):
         """
         :returns: (10 <= float <= 1200) pressure in mBar
@@ -359,6 +469,20 @@ class JOLTComputerBoard():
         :returns (int): error status
         """
         b = self._send_query(CMD_GET_ERROR)  # 1 byte
+        return int.from_bytes(b, 'little', signed=True)
+
+    def get_temp_error(self):
+        """
+        :returns (int): error status
+        """
+        b = self._send_query(CMD_GET_TEMP_ERROR)  # 1 byte
+        return int.from_bytes(b, 'little', signed=True)
+
+    def get_temp_integral(self):
+        """
+        :returns (int): error status
+        """
+        b = self._send_query(CMD_GET_TEMP_INTEGRAL)  # 1 byte
         return int.from_bytes(b, 'little', signed=True)
 
     def set_cb_isp_mode(self):
@@ -426,11 +550,14 @@ class JOLTComputerBoard():
             return serial
 
         ports = [p.device for p in comports()]
- 
+
         for n in ports:
             try:
+                logging.info("Test compatibility of device %s", n)
                 serial = self._openSerialPort(n, baudrate)
+                logging.info("Opened connection to device %s", n)
                 self._serial = serial
+                logging.info("Attempt to retrieve hw info from device %s", n)
                 idn = self.get_be_hw_version()
                 if not "jolt" in idn.lower():
                     raise IOError("Device doesn't seem to be a JOLT, identified as: %s" % (idn,))
@@ -446,7 +573,7 @@ class JOLTComputerBoard():
                           "to the PC. No JOLT found on ports %s" %
                           (ports,))
         return serial
-     
+
     def _send_cmd(self, cmd, arg=b''):
         """
         Frames command, sends it to the firmware and parses response
@@ -511,9 +638,11 @@ class JOLTComputerBoard():
             message_type = resp[1:2]
             if message_type == ID_ASCII:  # String message
                 char = b""
-                while resp[-2:-1] != EOT:
+                # Check if last character is EOT and then stop
+                while resp[-1:] != EOT:
                     resp += self._serial.read()
-                ret = resp[3:-2]
+                ret = resp[3:-1]
+
             # TODO: explicitly check for the type, and raise an error (but still try to read up to EOT)
             # elif message_type == ID_BIN:  # Binary data
             else:
@@ -528,7 +657,7 @@ class JOLTComputerBoard():
                 ret = resp[4:-1]
             #logging.debug("Received response %s" % resp)
             return ret
-        
+
     def terminate(self):
         pass
 
@@ -546,12 +675,13 @@ class JOLTSimulator():
         self.gain = int(10e6)  # µV
         self.mppc_temp = int(30e6)  # µC
         self.cold_plate_temp = int(24e6)  # µC
-        self.hot_plate_temp = int(35e6)  # µC
+        self.hot_plate_temp = int(30e6)  # µC
         self.output = int(800)  # µV
         self.vacuum_pressure = int(3e3)  # µBar
         self.channel = Channel.RED
         self.itec = int(10e6)
         self.fe_offset = int(513)
+        self.fe_output_voltage = int(1e6)  # µV
 
         self._temp_thread = None
         self._stop_thread = False  # temperature thread
@@ -603,7 +733,7 @@ class JOLTSimulator():
         com = msg[3]
         arglen = msg[2]
         arg = msg[4:4+arglen]
-        
+
         if msg[0] != SOH or msg[-1] != EOT:
             # TODO: error code
             pass
@@ -614,7 +744,7 @@ class JOLTSimulator():
             self._sendAnswer(b'SIMULATED_FIRMWARE' + 22 * b'x')
         elif com == CMD_GET_VERSION:
             self._sendStatus(ACK)
-            self._sendAnswer(b'SIMULATED_HARDWARE' + 22 * b'x')
+            self._sendAnswer(b'SIMULATED_HARDWARE_rev. b' + 22 * b'x')
         elif com == CMD_GET_FRONTEND_FW_VER:
             self._sendStatus(ACK)
             self._sendAnswer(b'SIMULATED_FIRMWARE' + 22 * b'x')
@@ -629,10 +759,15 @@ class JOLTSimulator():
             self._sendAnswer(b'SIMULATED_00000000' + 22 * b'x')
         elif com == CMD_GET_VOLTAGE:
             self._sendStatus(ACK)
-            self._sendAnswer(self.voltage.to_bytes(4, 'little', signed=True))
+            voltage = self.voltage + random.randint(-1e4, 1e4)
+            self._sendAnswer(voltage.to_bytes(4, 'little', signed=True))
         elif com == CMD_SET_VOLTAGE:
             self._sendStatus(ACK)
-            self.voltage = int.from_bytes(arg, 'little', signed=True)
+            voltage = int.from_bytes(arg, 'little', signed=True)
+            # Try to replicate a deviation as observed in real life
+            deviation = int((-4e-6 * (voltage * 1e-6) ** 3) * 1e6)
+            self.voltage = voltage + deviation
+            self._update_frontend_output_voltage()
         elif com == CMD_GET_OFFSET:
             self._sendStatus(ACK)
             self._sendAnswer(self.offset.to_bytes(4, 'little', signed=True))
@@ -645,6 +780,7 @@ class JOLTSimulator():
         elif com == CMD_SET_VOS_ADJ_SETTING:
             self._sendStatus(ACK)
             self.fe_offset = int.from_bytes(arg, 'little', signed=False)
+            self._update_frontend_output_voltage()
         elif com == CMD_GET_GAIN:
             self._sendStatus(ACK)
             self._sendAnswer(self.gain.to_bytes(4, 'little', signed=True))
@@ -667,6 +803,7 @@ class JOLTSimulator():
             self._sendAnswer(self.hot_plate_temp.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_COLD_PLATE_TEMP:
             self._sendStatus(ACK)
+            self._modify_cold_plate_temp()
             self._sendAnswer(self.cold_plate_temp.to_bytes(4, 'little', signed=True))
         elif com == CMD_GET_OUTPUT_SINGLE_ENDED:
             self._sendStatus(ACK)
@@ -705,25 +842,46 @@ class JOLTSimulator():
             # do nothing
         elif com == CMD_GET_CHANNEL_LIST:
             logging.error("not implemented")
+        elif com == CMD_GET_FRONTEND_OUTPUT_VOLTAGE:
+            self._sendStatus(ACK)
+            self._update_frontend_output_voltage()
+            self._sendAnswer(self.fe_output_voltage.to_bytes(4, 'little', signed=True))
         else:
             # TODO: error code
             logging.error("Unknown command %s" % com)
             self._sendStatus(NAK)
+
+    @staticmethod
+    def simulate_frontend_output_voltage(fe_offset, voltage):
+        # Estimate operating voltage influence on output voltage intercept with linear model parameters:
+        # (0.002653871656383483, 0.02920275957021566)
+        # With constant slope: -0.000164
+        # Note that the linear model is a simplification, in practice it is more exponential.
+        estimation = 1e6 * (-0.0001640 * fe_offset + (-0.002653 * voltage * 1e-6  + 0.029203))
+        # NOTE: noise is not simulated here
+        # NOTE: this was derived at min gain, and the output significantly deviates for different gain
+        # NOTE: the signal cannot go bellow zero
+        return int(max(0, estimation))
+
+    def _update_frontend_output_voltage(self):
+        self.fe_output_voltage = self.simulate_frontend_output_voltage(self.fe_offset, self.voltage)
+
+    def _modify_cold_plate_temp(self):
+        self.cold_plate_temp = int(self.mppc_temp + random.randint(-2e4, 2e4))
 
     def _modify_pressure(self):
         self.vacuum_pressure += random.randint(-0.1e3, 0.1e3)
         self.vacuum_pressure = max(self.vacuum_pressure, 0)
 
     def _modify_hp_temperature(self):
-        self.hot_plate_temp += random.randint(-2e6, 2e6)
+        self.hot_plate_temp += random.randint(-1e6, 1e6)
 
     def _change_temp(self):
         self._stop_thread = False
-        if self.cold_plate_temp > self.mppc_temp:
-            while not self._stop_thread and self.cold_plate_temp - self.mppc_temp > 0:
-                self.cold_plate_temp -= 5000000
-                time.sleep(2)
-        else:
-            while not self._stop_thread and self.cold_plate_temp - self.mppc_temp < 0:
-                self.cold_plate_temp += 5000000
-                time.sleep(2)
+        delta = self.mppc_temp - self.cold_plate_temp
+
+        # Values in uC
+        while not self._stop_thread and abs(delta) > 0.1 * 1e6:
+            delta = self.mppc_temp - self.cold_plate_temp
+            self.cold_plate_temp += int(delta // 1.5)
+            time.sleep(1)

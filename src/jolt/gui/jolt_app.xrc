@@ -52,7 +52,6 @@
 						<flag>wxBOTTOM</flag>
 						<border>5</border>
 						<object class="wxStaticBitmap" name="m_bitmap11">
-							<bg>#f0f0f0</bg>
 							<fg>#ababab</fg>
 							<bitmap>img/delmic_logo.png</bitmap>
 						</object>
@@ -73,7 +72,7 @@
 				<border>5</border>
 				<object class="wxFlexGridSizer">
 					<rows>1</rows>
-					<cols>4</cols>
+					<cols>5</cols>
 					<vgap>0</vgap>
 					<hgap>0</hgap>
 					<growablecols></growablecols>
@@ -103,10 +102,11 @@
 						<object class="wxSpinCtrlDouble" name="spn_voltage">
 							<style>wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
 							<size>85,-1</size>
+							<tooltip>Target voltage</tooltip>
 							<value>3.600000</value>
 							<min>0</min>
 							<max>70</max>
-							<inc>0.05</inc>
+							<inc>0.1</inc>
 							<digits>2</digits>
 						</object>
 					</object>
@@ -116,6 +116,16 @@
 						<border>5</border>
 						<object class="wxStaticText" name="m_staticText2">
 							<label>V</label>
+							<wrap>-1</wrap>
+						</object>
+					</object>
+					<object class="sizeritem">
+						<option>0</option>
+						<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+						<border>5</border>
+						<object class="wxStaticText" name="text_voltage">
+							<label></label>
+							<hover></hover>
 							<wrap>-1</wrap>
 						</object>
 					</object>
@@ -133,7 +143,7 @@
 						<flag>wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxFlexGridSizer">
-							<rows>3</rows>
+							<rows>4</rows>
 							<cols>4</cols>
 							<vgap>0</vgap>
 							<hgap>0</hgap>
@@ -188,7 +198,7 @@
 							</object>
 							<object class="sizeritem">
 								<option>2</option>
-								<flag>wxALL|wxEXPAND</flag>
+								<flag>wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxSlider" name="slider_gain">
 									<style>wxSL_BOTTOM|wxSL_HORIZONTAL</style>
@@ -200,7 +210,7 @@
 							</object>
 							<object class="sizeritem">
 								<option>1</option>
-								<flag>wxALL|wxALIGN_RIGHT</flag>
+								<flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxSpinCtrlDouble" name="spin_gain">
 									<style>wxALIGN_LEFT|wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
@@ -215,7 +225,7 @@
 							<object class="sizeritem">
 								<option>1</option>
 								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
-								<border>5</border>
+								<border>10</border>
 								<object class="wxStaticText" name="m_staticText19">
 									<label>%</label>
 									<wrap>-1</wrap>
@@ -232,7 +242,7 @@
 							</object>
 							<object class="sizeritem">
 								<option>0</option>
-								<flag>wxALL|wxEXPAND</flag>
+								<flag>wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxSlider" name="slider_offset">
 									<style>wxSL_BOTTOM|wxSL_HORIZONTAL</style>
@@ -244,7 +254,7 @@
 							</object>
 							<object class="sizeritem">
 								<option>1</option>
-								<flag>wxALL|wxALIGN_BOTTOM</flag>
+								<flag>wxALL|wxALIGN_BOTTOM|wxALIGN_CENTER_VERTICAL</flag>
 								<border>5</border>
 								<object class="wxSpinCtrlDouble" name="spin_offset">
 									<style>wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
@@ -259,9 +269,53 @@
 							<object class="sizeritem">
 								<option>1</option>
 								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
-								<border>5</border>
+								<border>10</border>
 								<object class="wxStaticText" name="m_staticText20">
 									<label>%</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="text_fe_offset">
+									<label>Offset (FE)</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxSlider" name="slider_fe_offset">
+									<style>wxSL_BOTTOM|wxSL_HORIZONTAL</style>
+									<size>180,-1</size>
+									<value>512</value>
+									<min>0</min>
+									<max>1023</max>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxALL|wxALIGN_BOTTOM|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxSpinCtrlDouble" name="spin_fe_offset">
+									<style>wxSP_ARROW_KEYS|wxTE_PROCESS_ENTER</style>
+									<size>75,-1</size>
+									<value>512</value>
+									<min>0</min>
+									<max>1023</max>
+									<inc>1</inc>
+									<digits>0</digits>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>1</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>10</border>
+								<object class="wxStaticText" name="unit_fe_offset">
+									<label></label>
 									<wrap>-1</wrap>
 								</object>
 							</object>
@@ -293,7 +347,7 @@
 						<flag>wxEXPAND</flag>
 						<border>5</border>
 						<object class="wxFlexGridSizer">
-							<rows>4</rows>
+							<rows>6</rows>
 							<cols>3</cols>
 							<vgap>5</vgap>
 							<hgap>5</hgap>
@@ -404,6 +458,33 @@
 								<border>5</border>
 								<object class="wxStaticText" name="m_staticText141">
 									<label></label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+														<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="text_fe_output">
+									<label>Output (FE)</label>
+									<wrap>-1</wrap>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALL</flag>
+								<border>5</border>
+								<object class="wxTextCtrl" name="txtbox_fe_output">
+									<style>wxTE_READONLY|wxTE_RICH</style>
+									<value></value>
+								</object>
+							</object>
+							<object class="sizeritem">
+								<option>0</option>
+								<flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+								<border>5</border>
+								<object class="wxStaticText" name="unit_fe_output">
+									<label>V</label>
 									<wrap>-1</wrap>
 								</object>
 							</object>

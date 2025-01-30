@@ -4,8 +4,14 @@ decorator
 pyserial<4.0
 click<=8.0
 appdirs
-# needed by appdirs, on Windows
+
+# Windows (comment out if on Linux)
 pywin32
 pyinstaller==4.2
-# needed by pyinstaller, on Windows
-pywin32-ctypes
+pywin32-ctypes  # needed by pyinstaller, on Windows
+
+setuptools>=39.2.0
+
+# Development (uncomment if needed)
+# pandas
+# matplotlib

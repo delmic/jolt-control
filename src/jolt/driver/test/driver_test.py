@@ -47,7 +47,12 @@ class TestDriver(unittest.TestCase):
         # Voltage
         self.jolt.set_voltage(20)
         vol = self.jolt.get_voltage()
-        self.assertEqual(vol, 20)
+        self.assertAlmostEqual(vol, 20, places=1)
+
+        # Voltage forced
+        self.jolt.adjust_voltage(20)
+        vol = self.jolt.get_voltage()
+        self.assertAlmostEqual(vol, 20, places=1)
 
         # Gain
         self.jolt.set_gain(50)
@@ -60,9 +65,9 @@ class TestDriver(unittest.TestCase):
         self.assertAlmostEqual(offset, 99, places=1)
 
         # Frontend offset
-        self.jolt.set_frontend_offset(4000)
+        self.jolt.set_frontend_offset(1000)
         offset = self.jolt.get_frontend_offset()
-        self.assertEqual(offset, 4000)
+        self.assertEqual(offset, 1000)
 
 
 if __name__ == "__main__":

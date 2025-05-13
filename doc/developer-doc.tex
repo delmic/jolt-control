@@ -99,17 +99,28 @@ For distribution, we package the source code into an .exe file with \texttt{pyin
 This needs to be done on a computer with the operating system that the executable should eventually be executed in.
 
 Currently, to support Windows 10 and Windows 7, the build has to be done on an old Windows 7 64 bits.
-The installation can be performed in a virtual machine.
+The installation can be performed in a virtual machine (although very slow).
 These are the steps:
 \begin{enumerate}
 	\item Install the Windows operating system in a virtual machine, e.g. VirtualBox.
 	\item Install git for Windows (from \texttt{https://gitforwindows.org/}).
 	\item Clone the Jolt repository from: \texttt{https://github.com/delmic/jolt-control.git}
-	\item Install Miniconda 64 bits. For Windows 7, it should be using Python 3.7 or 3.8, before 2022. They can be found here: \texttt{https://repo.anaconda.com/miniconda/}
-	\item Create a "jolt" environment with Python 3.6: \texttt{conda create -y --name jolt python==3.6.13}
+	\item If interested in development work, switch branch via \texttt{git checkout \textit{branch\_name}}.
+	\item Install Miniconda 64 bits. It can be found here: \texttt{https://repo.anaconda.com/miniconda/}
+	\item Create a "jolt" environment with Python 3.6: \texttt{conda create -y --name jolt python==3.6.8}
 	\item Switch to that new environment: \texttt{conda activate jolt}
 	\item Add the extra "forge" channel (for timeout-decorator): \texttt{conda config --append channels conda-forge}
-	\item Install the dependencies: \texttt{conda install --name jolt --file requirements.txt}. (Note that on Linux, you need to remove the pywin32* dependencies.)
+	\item Install the dependencies: \texttt{conda install --name jolt --file requirements.txt}. (Note that depending on operating system and environment, certain sections should be (un)commented)
+\end{enumerate}
+
+\subsection{Running Scripts}
+\begin{enumerate}
+	\item Start a Miniconda terminal.
+	\item Activate the environment: \texttt{conda activate jolt}
+	\item Navigate to the \texttt{jolt-control/install/windows} directory.
+	\item Run "build\_jolt" and select which .exe you want to build (jolt, firmware-updater, or both).
+	\item The executable can be found in the \texttt{dist} folder.
+	\item Sign digitally both executables, with \texttt{signtool}: \texttt{signtool sign /fd SHA256 /t http://timestamp.digicert.com }\emph{PATH-TO-EXECUTABLE.exe}
 \end{enumerate}
 
 \subsection{Building Windows Executables}

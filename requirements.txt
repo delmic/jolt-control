@@ -9,7 +9,7 @@ appdirs
 pywin32
 pyinstaller==4.2
 pywin32-ctypes  # needed by pyinstaller, on Windows
-
+pyinstaller-hooks-contrib==2021.3
 setuptools>=39.2.0
 
 # Development (uncomment if needed)

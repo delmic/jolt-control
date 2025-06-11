@@ -21,6 +21,7 @@ import enum
 import os
 import serial
 import logging
+from packaging.version import Version
 import time
 import threading
 import random
@@ -38,6 +39,7 @@ ID_ASCII = b"\x4D"  # packet identifier ascii message
 ID_BIN = b"\x04"  # packet identifier binary message
 JOLT_V1_HW_IDENTIFIER = "rev. a"
 JOLT_V2_HW_IDENTIFIER = "rev. b"
+JOLT_V2_1_HW_IDENTIFIER = "rev. c"
 
 
 # Error codes, as defined in FrontEndBoard/SystemMediator.h:FaultState
@@ -105,6 +107,15 @@ SAFERANGE_MPCC_TEMP = (-20, 20)  # °C
 SAFERANGE_HEATSINK_TEMP = (-20, 40)  # °C
 SAFERANGE_VACUUM_PRESSURE = (0, 5)  # mbar
 
+SAFERANGE_VOLTAGE = {
+    Version("1.0"): (52, 70),  # minimal useful values, max safe value
+    Version("2.0"): (30, 37),
+    Version("2.1"): (32, 49),
+}
+
+# For unknown computer board firmware it will most likely be a V1
+SAFERANGE_VOLTAGE[None] = SAFERANGE_VOLTAGE[Version("1.0")]
+
 
 class Channel(enum.Flag):
     NONE = 0
@@ -134,22 +145,20 @@ class JOLTComputerBoard():
 
         # Version handling
         be_hw_version = self.get_be_hw_version().lower()
+        self.version = None
         if JOLT_V1_HW_IDENTIFIER in be_hw_version:
-            logging.info("JOLT V1 detected")
-            self.version = 1
+            self.version = Version("1.0")
         elif JOLT_V2_HW_IDENTIFIER in be_hw_version:
-            logging.info("JOLT V2 detected")
-            self.version = 2
+            self.version = Version("2.0")
+        elif JOLT_V2_1_HW_IDENTIFIER in be_hw_version:
+            self.version = Version("2.1")
+
+        if self.version:
+            logging.info(f"JOLT V{self.version} detected")
         else:
-            self.version = -1
             logging.warning(f"Could not detect JOLT version for be_hw_version: {be_hw_version}")
 
-        # If JOLT V1 or unknown (probably also a V1)
-        if self.version <= 1:
-            self.voltage_range = (52, 70)
-        else:
-            # Set lower voltages for the JOLT V2.
-            self.voltage_range = (30, 37)  # Min useful / Max
+        self.voltage_range = SAFERANGE_VOLTAGE[self.version]
 
         self.adjust_voltage_thread = None
         self.stop_adjust_voltage_event = threading.Event()

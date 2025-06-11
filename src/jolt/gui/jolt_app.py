@@ -28,6 +28,7 @@ from jolt.util.math import argmin, linear_regression
 import logging
 from logging.handlers import RotatingFileHandler
 import os
+from packaging.version import Version
 from pathlib import Path
 import sys
 import threading
@@ -101,36 +102,6 @@ class JoltApp(wx.App):
         if not os.path.isdir(self.dirs.user_data_dir):
             os.makedirs(self.dirs.user_data_dir)
 
-        self.config = None
-        # Initialize values
-        self.voltage, self.gain, self.offset, self.channel, fe_offset, self.ambient = self.load_config(section='DEFAULT')
-        # ambient == True means that the device should only be cooling down
-        # to 15°C and the pressure is left unchecked.
-        self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.output = (0, 0, 0, 0)
-        # Get the target mppc temperature from the configuration file if provided,
-        # otherwise use the default one.
-        self.target_mppc_temp = self.load_config(section='TARGET')
-        # Get the threshold values from the configuration file if provided, otherwise use the default ones.
-        # TODO: saferange_mppc_current is unused => use it too... but comparing with which reading?
-        self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
-            self.load_config(section='SAFERANGE')
-        self.differential, self.rgb_filter = self.load_config(section='SIGNAL')
-        self.calibration_file, self.calibration_temps, self.calibration_voltage_range = self.load_config(section='CALIBRATION')
-        if not self.rgb_filter:
-            # Force the channel to panchromatic. The channel selection will be hidden.
-            self.channel = "Pan"
-        self.error = 8  # 8 means no error
-        self.target_temp = 24
-        self.voltage_gui = 0  # Initialize on zero for now
-        self.fe_output = 0
-        self.power = False
-        self.hv = False
-        self.calibrating = False
-
-        # Initialize wx components
-        super().__init__(redirect=False)
-        self.init_dialog()
-
         # Start driver
         try:
             self.dev = driver.JOLTComputerBoard(simulated)
@@ -148,13 +119,45 @@ class JoltApp(wx.App):
             if dlg.ShowModal() == wx.ID_OK:
                 dlg.Destroy()
                 self.dialog.Close()
-                # The compiled Windows app has troubles nicely shutting down, therefore explicetely force it to stop.
+                # The compiled Windows app has troubles nicely shutting down, therefore explicitly force it to stop.
                 sys.exit(0)
                 return
         except Exception as ex:
             logging.error("Jolt failed to start: %s", ex)
             sys.exit(0)
             return
+
+        self.config = None
+        # Initialize values
+        self.voltage, self.gain, self.offset, self.channel, fe_offset, self.ambient = self.load_config(section='DEFAULT')
+        # ambient == True means that the device should only be cooling down
+        # to 15°C and the pressure is left unchecked.
+        self.mppc_temp, self.heat_sink_temp, self.vacuum_pressure, self.output = (0, 0, 0, 0)
+        # Get the target mppc temperature from the configuration file if provided,
+        # otherwise use the default one.
+        self.target_mppc_temp = self.load_config(section='TARGET')
+        # Get the threshold values from the configuration file if provided, otherwise use the default ones.
+        # TODO: saferange_mppc_current is unused => use it too... but comparing with which reading?
+        self.mppc_temp_rel, self.saferange_sink_temp, self.saferange_mppc_current, self.saferange_vacuum_pressure = \
+            self.load_config(section='SAFERANGE')
+        self.differential, self.rgb_filter = self.load_config(section='SIGNAL')
+
+        self.calibration_compatible = self.dev.version >= Version("2.0")
+        self.calibration_file, self.calibration_temps, self.calibration_voltage_range = self.load_config(section='CALIBRATION')
+        if not self.rgb_filter:
+            # Force the channel to panchromatic. The channel selection will be hidden.
+            self.channel = "Pan"
+        self.error = 8  # 8 means no error
+        self.target_temp = 24
+        self.voltage_gui = 0  # Initialize on zero for now
+        self.fe_output = 0
+        self.power = False
+        self.hv = False
+        self.calibrating = False
+
+        # Initialize wx components
+        super().__init__(redirect=False)
+        self.init_dialog()
 
         # Get information from hardware for the log
         logging.info("Backend firmware: %s", self.dev.get_be_fw_version())
@@ -196,8 +199,8 @@ class JoltApp(wx.App):
         # Initialize calibration thread
         self.calibration_thread = threading.Thread(target=self.calibrate)
 
-        # Calibration is only available for JOLT V2
-        if self.dev.version == 2:
+        # Calibration is only available for JOLT V2 and up
+        if self.calibration_compatible:
             self.load_calibration_file()  # Populates self.valid_calibration and self.calibration_table
             if not self.valid_calibration:
                 no_calibration_dialog_text = "No (valid) calibration file available. The data will be unreliable, contact Delmic support (support@delmic.com) to obtain the calibration file. Use the JOLT anyway?"
@@ -340,6 +343,7 @@ class JoltApp(wx.App):
                 rgb_filter = True
             return differential, rgb_filter
         elif section == 'CALIBRATION':
+            calibration_voltage_range_fallback = (*self.dev.voltage_range, 1)
             try:
                 calibration_file = self.config.get('CALIBRATION', 'calibration_file', fallback=None)
                 calibration_temps = self.config.gettuple('CALIBRATION', 'calibration_temps', fallback=None)
@@ -347,13 +351,12 @@ class JoltApp(wx.App):
 
                 mppc_temp = self.config.getint('TARGET', 'mppc_temp', fallback=MPPC_TEMP_POWER_ON)
                 calibration_temps_fallback = (mppc_temp, )
-                calibration_voltage_range_fallback = (30, 37, 1)  # min, max, step size
                 if calibration_temps is None:
                     logging.warning("No calibration temperatures provided, will use 20 C now")
                     calibration_temps = calibration_temps_fallback
 
-                if calibration_voltage_range is None:
-                    logging.warning("No calibration voltage range provided, will use the JOLT V2 range (30, 37, 1)")
+                if calibration_voltage_range is None and self.calibration_compatible:
+                    logging.warning(f"No calibration voltage range provided, will use {calibration_voltage_range_fallback}")
                     calibration_voltage_range = calibration_voltage_range_fallback
             except Exception as ex:
                 logging.error("Invalid CALIBRATION value, falling back to default values, ex: %s", ex)
@@ -497,12 +500,19 @@ class JoltApp(wx.App):
         fe_offset_toggle_id = 4
         self.dialog.Bind(wx.EVT_MENU, self.on_f5, id=f5_id)
         self.dialog.Bind(wx.EVT_MENU, self.on_inspect, id=inspect_id)
-        self.dialog.Bind(wx.EVT_MENU, self.on_calibration, id=calibration_id)
         self.dialog.Bind(wx.EVT_MENU, self.on_fe_offset_toggle, id=fe_offset_toggle_id)
-        accel_tbl = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_F5, f5_id),
-                                         (wx.ACCEL_CTRL, ord('I'), inspect_id),
-                                         (wx.ACCEL_CTRL, ord('K'), calibration_id),
-                                         (wx.ACCEL_CTRL, ord('O'), fe_offset_toggle_id),])
+
+        accelerators = [
+            (wx.ACCEL_NORMAL, wx.WXK_F5, f5_id),
+            (wx.ACCEL_CTRL, ord('I'), inspect_id),
+            (wx.ACCEL_CTRL, ord('O'), fe_offset_toggle_id),
+        ]
+
+        if self.calibration_compatible:
+            self.dialog.Bind(wx.EVT_MENU, self.on_calibration, id=calibration_id)
+            accelerators.append((wx.ACCEL_CTRL, ord('K'), calibration_id))
+
+        accel_tbl = wx.AcceleratorTable(accelerators)
         self.dialog.SetAcceleratorTable(accel_tbl)
         self.power_label = xrc.XRCCTRL(self.dialog, 'm_staticText16')  # will be updated in debug mode
         self.txtbox_output.SetFocus()  # if focus is None, the f5 event is not captured, so set focus to a textbox
@@ -822,6 +832,8 @@ class JoltApp(wx.App):
         Set voltage if voltage change enabled, otherwise ignore.
         """
         voltage = float(event.GetString())
+        # Safeguard for safe voltage range
+        voltage = max(min(voltage, self.dev.voltage_range[1]), 0)
         self.voltage_gui = voltage
         # This makes sure that formatting rules apply and focus is regained.
         # For example: 20 becomes 20.00 if precision is 2 for instance.

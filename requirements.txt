@@ -8,7 +8,7 @@ packaging
 
 # Windows (comment out if on Linux)
 pywin32
-pyinstaller==4.2
+pyinstaller==5.13.1
 pywin32-ctypes  # needed by pyinstaller, on Windows
 pyinstaller-hooks-contrib==2021.3
 setuptools>=39.2.0

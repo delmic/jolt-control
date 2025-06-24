@@ -4,6 +4,7 @@ decorator
 pyserial<4.0
 click<=8.0
 appdirs
+packaging
 
 # Windows (comment out if on Linux)
 pywin32

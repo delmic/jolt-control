@@ -38,12 +38,10 @@ from pathlib import Path
 from threading import Event
 from typing import Union
 
-logging.basicConfig()
-logger = logging.getLogger()
+logging.basicConfig(format='%(asctime)s %(module)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 CHANNELS = [Channel.RED, Channel.BLUE, Channel.GREEN, Channel.PANCHROMATIC]
 TARGET_OP_TEMPS = [25]
-OP_VOLTAGE_RANGE = (30, 37, 1)
 FE_OFFSET_RANGE = (0, 1023)
 
 OFFSET_LOOKBACK_VALUE = 3
@@ -67,7 +65,7 @@ def find_zero_offset_binary(dev, input_range: Tuple, stop_event: Event = None) -
             return STOP_EVENT_STRING
 
         if min_offset == max_offset:
-            logger.warning("Was not able to normally converge within range")
+            logging.warning("Was not able to normally converge within range")
             return max_offset
 
         input_offset_value = int(statistics.mean([min_offset, max_offset]))
@@ -121,7 +119,7 @@ def find_zero_offset_binary(dev, input_range: Tuple, stop_event: Event = None) -
                 min_offset = input_offset_value  # For following operating voltages
                 return  input_offset_value
             elif v_output < 0:
-                logger.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
+                logging.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
                 raise ValueError(f"Negative output voltage detected ({v_output} V)")
             else:
                 # Apparently we are still somewhere higher than the optimum
@@ -153,7 +151,7 @@ def find_zero_offset_binary(dev, input_range: Tuple, stop_event: Event = None) -
             #    Offset
             min_offset = input_offset_value
         elif v_output < 0:
-            logger.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
+            logging.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
             raise ValueError(f"Negative output voltage detected ({v_output} V)")
 
 
@@ -172,11 +170,11 @@ def find_initial_fe_offset(dev, stop_event: Event = None):
     attempts = 0
     while not fe_offset:
         if attempts >= 5:
-            logger.error("Was not able to find initial offset. "
+            logging.error("Was not able to find initial offset. "
                         "Skipping entire channel. \n"
                         "Please check the hardware for defects.")
             break
-        logger.debug(f"Attempt {attempts + 1} to find initial offset")
+        logging.debug(f"Attempt {attempts + 1} to find initial offset")
         attempts += 1
         fe_offset = find_zero_offset_binary(dev, FE_OFFSET_RANGE, stop_event)
         if fe_offset == STOP_EVENT_STRING:
@@ -217,7 +215,7 @@ def find_subsequent_fe_offset(dev, fe_offset_initial, previous_op_voltage_offset
         if stop_event is not None and stop_event.is_set():
             return STOP_EVENT_STRING
         if offset_candidate >= FE_OFFSET_RANGE[1]:
-            logger.warning(f"Was not able to converge within range")
+            logging.warning(f"Was not able to converge within range")
             return FE_OFFSET_RANGE[1]
         await_set_stabilized(
             dev.set_frontend_offset, dev.get_frontend_offset, offset_candidate, tolerance=0.1)
@@ -229,7 +227,7 @@ def find_subsequent_fe_offset(dev, fe_offset_initial, previous_op_voltage_offset
         if v_output_median == 0:
             return offset_candidate
         elif v_output_median < 0:
-            logger.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
+            logging.error(f"Negative output voltage detected. \nPlease check the hardware for defects.")
             raise ValueError(f"Negative output voltage detected ({v_output_median} V)")
 
         # The was no convergence yet, so keep going further
@@ -284,7 +282,7 @@ def run(
         dev: JOLTComputerBoard,
         temperatures: List[float] = TARGET_OP_TEMPS,
         channels: List[Channel] = CHANNELS,
-        voltage_range: Tuple[float] = OP_VOLTAGE_RANGE,
+        voltage_range: Tuple[float] = None,
         stop_event: Optional[Event] = None,
         calibration_file: Optional[Path] = None,
     ):
@@ -317,6 +315,7 @@ def run(
     await_set_stabilized(dev.set_gain, dev.get_gain, target=100, tolerance=2)
     await_set_stabilized(dev.set_offset, dev.get_offset, target=0, tolerance=1)
 
+    assert voltage_range is not None
     target_op_voltages = [*arange(*voltage_range), voltage_range[1]]
 
     with open(calibration_file_tmp, "w", newline="") as file:
@@ -328,18 +327,18 @@ def run(
     total_runtime = 0
 
     for target_op_temp in temperatures:
-        logger.info(f"Switching temperature to: {target_op_temp}")
+        logging.info(f"Switching temperature to: {target_op_temp}")
         await_set_stabilized(dev.set_target_mppc_temp, dev.get_cold_plate_temp, target_op_temp, tolerance=0.1)
 
         for channel in channels:
-            logger.info(f"Switching channel to: {channel}")
+            logging.info(f"Switching channel to: {channel}")
             await_set(dev.set_channel, dev.get_channel, channel)
 
             # Per channel, keep track of the offset difference between operating voltages
             previous_op_voltage_offset_gap = 0
             for i, target_op_voltage in enumerate(target_op_voltages):
                 start_time = time.time()
-                logger.info(f"Switching operating voltage to: {target_op_voltage}")
+                logging.info(f"Switching operating voltage to: {target_op_voltage}")
                 await_set_stabilized(dev.adjust_voltage, dev.get_voltage, target_op_voltage, tolerance=0.1)
 
                 # For the first operating voltage, we want to do an exhaustive search
@@ -360,7 +359,7 @@ def run(
 
                     previous_op_voltage_offset_gap = fe_offset - previous_fe_offset
 
-                logger.info(f"Converged: {fe_offset} offset")
+                logging.info(f"Converged: {fe_offset} offset")
                 # Saving results to tsv file on disk
                 save_results(dev, calibration_file_tmp, target_op_temp, channel.name, target_op_voltage, fe_offset)
 
@@ -370,9 +369,9 @@ def run(
                 total_runtime += runtime
                 seconds_left = total_runtime * (total_combinations / current_combination_idx - 1)
                 hours, minutes, seconds = str(timedelta(seconds=total_runtime)).split(":")
-                logger.info(f"Total runtime: {hours}h {minutes}m {int(float(seconds))}s")
+                logging.info(f"Total runtime: {hours}h {minutes}m {int(float(seconds))}s")
                 hours, minutes, seconds = str(timedelta(seconds=seconds_left)).split(":")
-                logger.info(f"Estimated time left: {hours}h {minutes}m {int(float(seconds))}s")
+                logging.info(f"Estimated time left: {hours}h {minutes}m {int(float(seconds))}s")
 
     # Remove the _ prefix after completion
     calibration_file_tmp.rename(calibration_file)

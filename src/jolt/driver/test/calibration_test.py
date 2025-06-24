@@ -65,6 +65,7 @@ class TestCalibration(unittest.TestCase):
                     dev=self.jolt,
                     calibration_file=tmp_file,
                     stop_event=stop_event,
+                    voltage_range=(30, 37, 1),
                 )
             )
             self.calibration_thread.start()
